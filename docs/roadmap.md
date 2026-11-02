@@ -1,5 +1,10 @@
 # Roadmap
 
+Execution order and acceptance gates: [detailed plan (Russian)](implementation-plan.ru.md).
+Next action: **G0, the native integration/build spike**, then a playable G1/G2 world.
+The owner's performance aspiration is 32 near chunks / 120 FPS with farther DH
+terrain, adjustable for older hardware. It is not an achieved benchmark.
+
 ## Implemented in the standalone prototype
 
 - [x] Mountain belt, massifs, foothills and continuous climate fields.

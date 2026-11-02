@@ -1,0 +1,30 @@
+# Immersive Landscapes implementation
+
+- Deliver a playable **Horizon native mod**, not a replacement engine or a CLI-only
+  terrain library. The existing Rust library is an internal component of that mod.
+- Start with `docs/next-agent.md`, then `docs/implementation-plan.ru.md`. Resume the
+  first incomplete gate; do not repeat completed DH porting or broad research.
+- The owner's acceptance is a world created from the delivered build, impressive
+  terrain with Distant Horizons, and measured smooth performance. A passing unit
+  test, preview image, successful build or screenshot alone is not completion.
+- Performance aspiration: **32 actual near chunks, 120 FPS**, with farther DH
+  terrain. Keep near distance distinct from DH distance. This is a target, not an
+  achieved result. Offer settings for older PCs; preserve heavy-modpack headroom.
+- The owner accepts even roughly 10x longer world preparation to improve gameplay
+  performance. Prefer persistent preprocessing and bounded asynchronous work;
+  never hide a warm-only test as fresh-world performance.
+- In this Windows workspace, all project-controlled files, temp, caches, builds,
+  worlds and evidence must remain on E:. Read the parent AGENTS.md and source
+  `../RustCore/development/scripts/Enter-RustDev.ps1` before Rust/build commands.
+  One Cargo job; no concurrent full engine builds. Never reboot automatically.
+- Preserve existing saves, accounts, clean RustCore, and the tested DH rollback.
+  Read `../RustCore/AGENTS.md` before runtime work. Read source-tree instructions
+  before changing an engine stage; never hand-edit the pristine engine snapshot.
+- Author/Git identity: dormyu. Use the verified local Git identity, not invented
+  email or changes to global Git. Repository: dormyu/immersive-landscapes.
+- Original terrain code is MIT; DH adaptation remains separate with its LGPL
+  notices. Do not commit game resources, credentials, control tokens or worlds.
+- Rust client and Rust dedicated server; solo and at least two clients required.
+  No Java compatibility work and no DormCore framework without a real consumer.
+- Work in small, verifiable commits. Update gate status with evidence and the next
+  exact action. Do not mark a task complete while an acceptance check fails.

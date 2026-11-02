@@ -78,6 +78,10 @@ scaling belongs to the wider modpack, not this generator.
 See [architecture and current limits](docs/architecture.md),
 [roadmap](docs/roadmap.md) and [contributing](CONTRIBUTING.md).
 
+The detailed [playable-mod implementation plan (Russian)](docs/implementation-plan.ru.md)
+defines integration gates, visual acceptance and performance measurements. The
+[implementation handoff](docs/next-agent.md) records the next concrete task.
+
 ## Compatibility and related work
 
 The local integration target is Horizon Nightly `c9d474d` / Minecraft 26.3.
