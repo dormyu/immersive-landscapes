@@ -2,6 +2,11 @@
 
 - Deliver a playable **Horizon native mod**, not a replacement engine or a CLI-only
   terrain library. The existing Rust library is an internal component of that mod.
+- Scope is ONLY world generation: realistic mountains, connected rivers/waterbodies,
+  seamless biome transitions, and matching DH terrain with low overhead. Do not add
+  survival systems, progression, classes or a DormCore framework to acceptance.
+- The old G0-G7 / up-to-100-hour plan was rejected as over-scoped. Use the replacement
+  G0-G3 plan; prioritize existing engine APIs and selective reuse of reference code.
 - Start with `docs/next-agent.md`, then `docs/implementation-plan.ru.md`. Resume the
   first incomplete gate; do not repeat completed DH porting or broad research.
 - The owner's acceptance is a world created from the delivered build, impressive
