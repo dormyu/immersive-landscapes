@@ -1,0 +1,72 @@
+diff --git a/crates/horizon-mixins-cli/tests/cases/boundary.rs b/crates/horizon-mixins-cli/tests/cases/boundary.rs
+index cb053ff..2bcb938 100644
+--- a/crates/horizon-mixins-cli/tests/cases/boundary.rs
++++ b/crates/horizon-mixins-cli/tests/cases/boundary.rs
+@@ -67,6 +67,35 @@ source="runtime.rs"
+     );
+     f
+ }
++#[test]
++fn head_preserves_body_macros_without_expanding_them() {
++    let f = fixture();
++    f.replace(
++        "engine/src/boundary.rs",
++        "let value = work()?;",
++        "macro_rules! original_work { () => { work()? }; }\n        let value = original_work!();",
++    );
++    let original = source::files(&f.root).unwrap();
++    let report = f.run("check");
++    assert!(
++        report["cargo_stdout"]
++            .as_str()
++            .unwrap()
++            .contains("preserved_closure_errors_and_drop ... ok")
++    );
++    assert_eq!(original, source::files(&f.root).unwrap());
++    // Site rewriting still cannot inspect the macro expansion.
++    f.replace(
++        "mods/alpha/horizon-mixin.toml",
++        "kind=\"HEAD\"",
++        "kind=\"RETURN\"",
++    );
++    assert_eq!(
++        build_plan(&f.root, &f.mods).unwrap_err().code,
++        "E_UNSUPPORTED_MACRO"
++    );
++}
++
+ #[test]
+ fn head_preserves_lifetime_methods_closures_question_mark_and_drop() {
+     let f = fixture();
+diff --git a/crates/horizon-mixins-core/src/plan.rs b/crates/horizon-mixins-core/src/plan.rs
+index 6998c81..42eb5f1 100644
+--- a/crates/horizon-mixins-core/src/plan.rs
++++ b/crates/horizon-mixins-core/src/plan.rs
+@@ -924,7 +924,11 @@ impl<'ast> Visit<'ast> for Safety {
+         visit::visit_expr(self, expr);
+     }
+     fn visit_macro(&mut self, _: &'ast syn::Macro) {
+-        self.error = Some(("E_UNSUPPORTED_MACRO", "target contains an opaque macro"));
++        // HEAD leaves the body opaque and prepends a call; it never selects or
++        // rewrites macro-expanded sites. Other injection kinds remain closed.
++        if !self.boundary {
++            self.error = Some(("E_UNSUPPORTED_MACRO", "target contains an opaque macro"));
++        }
+     }
+     fn visit_item(&mut self, item: &'ast Item) {
+         if self.boundary {
+diff --git a/docs/boundary-head-and-modules.md b/docs/boundary-head-and-modules.md
+index eaf33da..b354cda 100644
+--- a/docs/boundary-head-and-modules.md
++++ b/docs/boundary-head-and-modules.md
+@@ -38,7 +38,9 @@ sites or exits. If a cancellable hook continues, the original body executes
+ with its original returns, error propagation and destruction behavior. If it
+ breaks, normal Rust return semantics drop the target's owned arguments once.
+ 
+-Source macros, unresolved cfg and attribute macros still fail closed. Async
++Local dormyu adaptation: body macros are preserved opaquely by boundary HEAD;
++interior/RETURN hooks still reject them. Unresolved cfg and attribute macros
++still fail closed. Async
+ functions remain rejected. RETURN and site injections continue to use their
+ stricter control-flow validation, including when combined with HEAD. HEAD-only
+ planning does not assign expression/local coordinates inside the untouched body;

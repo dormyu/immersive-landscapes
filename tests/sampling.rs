@@ -1,4 +1,34 @@
-use immersive_landscapes::{Basin, Config, HeightField, Landscape, RiverSegment};
+use immersive_landscapes::{Basin, Config, Delta, HeightField, Landscape, RiverSegment};
+
+#[test]
+fn delta_branches_carve_two_wet_channels_with_dry_ground_between() {
+    let c = Config {
+        side: 9,
+        cell_size: 100.0,
+        sea_level: 0.0,
+        ..Config::default()
+    };
+    let mut basin = Basin::compile(HeightField::from_elevations(c, vec![2.0; 81]).unwrap());
+    basin.rivers.clear();
+    basin.deltas = vec![Delta {
+        mouth: 40,
+        branches: vec![
+            vec![[0.0, 0.0], [-100.0, 100.0]],
+            vec![[0.0, 0.0], [100.0, 100.0]],
+        ],
+        branch_discharge: vec![1.0, 1.0],
+        incoming_discharge: 2.0,
+    }];
+    let land = Landscape::new(basin);
+    for x in [-50.0, 50.0] {
+        let channel = land.sample(x, 50.0).unwrap();
+        assert_eq!(channel.ground, -2.0);
+        assert_eq!(channel.water, Some(0.0));
+    }
+    let between = land.sample(0.0, 100.0).unwrap();
+    assert_eq!(between.ground, 2.0);
+    assert_eq!(between.water, None);
+}
 
 fn channel_fixture() -> Landscape {
     let c = Config {

@@ -11,3 +11,4 @@ control.json
 __pycache__/
 *.pyc
 .venv/
+/mixins/immersive_landscapes/core.generated.rs

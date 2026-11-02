@@ -1,0 +1,63 @@
+[mod]
+id = "immersive_landscapes"
+version = "0.1.0-dev.1"
+priority = 110
+
+[compatibility]
+horizon_revision = "c9d474dd9116e84c243f8992d75c11314df56f06"
+
+[[module]]
+id = "core"
+file = "crates/horizon-client/src/game.rs"
+name = "immersive_landscapes_core"
+source = "core.generated.rs"
+
+[[module]]
+id = "adapter"
+file = "crates/horizon-client/src/game.rs"
+name = "immersive_landscapes"
+source = "adapter.rs"
+
+[[injection]]
+id = "prepare"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::world_loading::WorldRequest::prepare_world"
+helper = "prepare.rs"
+bindings = [
+  { name = "request", ty = "&crate::game::world_loading::WorldRequest", value = "&self" },
+  { name = "settings", ty = "&crate::game::Settings", value = "settings" },
+]
+
+[[injection]]
+id = "shape"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::world_loading::level_shapes"
+helper = "shape.rs"
+bindings = [{ name = "root", ty = "&std::path::Path", value = "world_root" }]
+
+[[injection]]
+id = "generator"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::world_loading::make_streaming"
+helper = "generator.rs"
+bindings = [
+  { name = "res", ty = "&crate::game::Resources", value = "res" },
+  { name = "pack", ty = "&crate::game::PackResources", value = "pack" },
+  { name = "options", ty = "&crate::game::Options", value = "options" },
+  { name = "settings", ty = "&crate::game::Settings", value = "settings" },
+  { name = "root", ty = "&std::path::Path", value = "world_root" },
+  { name = "dim", ty = "crate::game::Dim", value = "dim" },
+  { name = "shape", ty = "horizon_client::chunk::LevelShape", value = "shape" },
+  { name = "seed", ty = "i64", value = "seed" },
+  { name = "features", ty = "&[String]", value = "enabled_features" },
+]
+
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [{ name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" }]

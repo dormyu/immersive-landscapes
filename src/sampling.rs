@@ -1,6 +1,6 @@
 //! Shared surface queries for future chunk and distant-terrain adapters.
 //! Drainage and the spatial index are compiled once; queries do no basin solving.
-use crate::{Basin, Climate};
+use super::{Basin, Climate};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Surface {
@@ -46,6 +46,26 @@ impl Landscape {
                 depth: r.depth,
                 flood_radius: r.floodplain_width / 2.0,
             });
+        }
+        // Distributaries affect the same surface queried by voxel chunks and LOD.
+        let mut branches = Vec::new();
+        for delta in &result.basin.deltas {
+            for (path, discharge) in delta.branches.iter().zip(&delta.branch_discharge) {
+                let radius = (3.0 + 5.0 * discharge.sqrt()).min(180.0) / 2.0;
+                for pair in path.windows(2) {
+                    branches.push(Channel {
+                        a: pair[0],
+                        b: pair[1],
+                        water: [result.basin.field.config.sea_level; 2],
+                        radius,
+                        depth: (1.0 + discharge.powf(0.3)).min(16.0),
+                        flood_radius: radius * 3.0,
+                    });
+                }
+            }
+        }
+        for channel in branches {
+            result.index(channel);
         }
         result
     }

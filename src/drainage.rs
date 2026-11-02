@@ -1,6 +1,6 @@
 //! Priority-flood drainage, runoff conservation and explicit river geometry.
 //! O(N log N) compilation, O(N) storage. Not a time-stepped fluid solver.
-use crate::terrain::HeightField;
+use super::terrain::HeightField;
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, VecDeque};
 
