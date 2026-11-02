@@ -57,7 +57,7 @@ that arbitrary Java data packs are compatible.
 ## Named creation-screen type
 
 The enabled mod owns the normal-world generation slot, whose creation-screen
-name is now **Immersive Landscapes**. This is the accepted recipe under an
+name is now **Immersive Landscapes**. This is the existing candidate recipe under an
 accurate display name; it is not a second generator or a save-format migration.
 The persisted Horizon identity remains `minecraft:normal`, descriptor4 and the
 world-local data pack. Flat, large-biome and other slots keep their own behavior.

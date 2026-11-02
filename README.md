@@ -8,10 +8,11 @@ The current version uses Epic Terrain's complete MIT generation recipes,
 adapted to Horizon and tuned for smaller climate regions. Original authorship
 and every data change are recorded in [CREDITS](CREDITS.md).
 
-> The pack author accepted the terrain and performance on 2 November 2026:
-> near16 + Distant Horizons128 medium, 120 FPS cap and VSync. Version
-> `0.2.0-dev.2` names the world type **Immersive Landscapes** and preserves
-> that generation. Further refinements and heavy-pack testing continue.
+> Development build; terrain quality and Distant Horizons loading are not
+> accepted. The earlier acceptance statement mistakenly attributed feedback
+> from another launcher instance to this mod. See the
+> [3 November correction](docs/feedback-correction.md). Version `0.2.0-dev.2`
+> adds the **Immersive Landscapes** world-type label without changing terrain.
 
 ![Native Horizon screenshot: mountain range, forests and water](docs/images/immersive-v4-native.png)
 
@@ -37,9 +38,9 @@ Distant rendering is provided separately by the modpack's adaptation of
 [Distant Horizons for Horizon Client](https://github.com/denizsahin7744/distant-horizons-for-horizon-client).
 Near distance and distant LOD distance are separate settings. The aspiration is
 32 actual near chunks at 120 FPS, with far terrain and room for a heavy pack;
-this is a future target, not a condition left open on the accepted near16 profile.
-Future modpack structures and their placement will be built for this geography;
-that structure overhaul has not been implemented yet.
+this target and owner acceptance remain open. Future modpack structures and
+their placement will be built for the eventually approved geography; the current
+preset is not an approved foundation and that overhaul is not implemented.
 
 ## Build and tuning
 
