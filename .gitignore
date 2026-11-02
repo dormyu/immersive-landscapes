@@ -1,0 +1,13 @@
+/target/
+/output/
+/private/
+*.hmod
+*.hnmod
+*.exe
+*.dll
+.local/
+accounts.json
+control.json
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,23 @@
+[package]
+name = "immersive-landscapes"
+version = "0.1.0-dev.1"
+edition = "2024"
+rust-version = "1.85"
+authors = ["dormyu"]
+description = "Large landscapes and connected watersheds for Horizon/Rust Minecraft."
+license = "MIT"
+repository = "https://github.com/dormyyy/immersive-landscapes"
+readme = "README.md"
+keywords = ["minecraft", "horizon", "terrain", "hydrology", "worldgen"]
+categories = ["game-development", "simulation"]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "immersive-landscapes"
+path = "src/main.rs"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
