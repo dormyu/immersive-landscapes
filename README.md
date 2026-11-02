@@ -4,13 +4,14 @@ Minecraft landscapes with mountain ranges, rivers and varied biomes at a scale
 suited to exploration and a fantasy survival pack. By **dormyu**.
 
 This is a native mod for the **Horizon Rust client and Rust dedicated server**.
-The current candidate uses Epic Terrain's complete MIT generation recipes,
+The current version uses Epic Terrain's complete MIT generation recipes,
 adapted to Horizon and tuned for smaller climate regions. Original authorship
 and every data change are recorded in [CREDITS](CREDITS.md).
 
-> Experimental. The earlier height-only prototypes were rejected visually.
-> Version `0.2.0-dev.1` replaces that approach; visual acceptance, matching
-> distant terrain and the final performance budget are still being checked.
+> The pack author accepted the terrain and performance on 2 November 2026:
+> near16 + Distant Horizons128 medium, 120 FPS cap and VSync. Version
+> `0.2.0-dev.2` names the world type **Immersive Landscapes** and preserves
+> that generation. Further refinements and heavy-pack testing continue.
 
 ![Native Horizon screenshot: mountain range, forests and water](docs/images/immersive-v4-native.png)
 
@@ -18,7 +19,8 @@ Actual native-game capture, seed8675309, near16 and Distant Horizons128 medium.
 
 ## How it works
 
-Create a normal world, choose a seed, and play. The mod installs its generation
+Create a world with type **Immersive Landscapes**, choose a seed, and play.
+It is selected initially while the mod is enabled. The mod installs its generation
 recipe before Horizon loads the world's dimensions and biome registries.
 There is no prepared world to copy and no manual data-pack selection.
 
@@ -35,7 +37,9 @@ Distant rendering is provided separately by the modpack's adaptation of
 [Distant Horizons for Horizon Client](https://github.com/denizsahin7744/distant-horizons-for-horizon-client).
 Near distance and distant LOD distance are separate settings. The aspiration is
 32 actual near chunks at 120 FPS, with far terrain and room for a heavy pack;
-this is a target, not a claimed result.
+this is a future target, not a condition left open on the accepted near16 profile.
+Future modpack structures and their placement will be built for this geography;
+that structure overhaul has not been implemented yet.
 
 ## Build and tuning
 
@@ -54,6 +58,8 @@ See [current handoff](docs/next-agent.md) and [reference findings](docs/referenc
 
 [Measured validation and known limits](docs/validation-0.2.0-dev.1.md) distinguish
 actual native-game checks from the standalone research-library tests.
+[Named-world UI and save compatibility checks](docs/validation-0.2.0-dev.2.md)
+cover the current update.
 
 Own code is [MIT](LICENSE). Epic Terrain's data retains its own MIT notice;
 Distant Horizons remains a separate LGPL project. No game assets, prepared

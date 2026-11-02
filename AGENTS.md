@@ -5,12 +5,17 @@
 - Scope is ONLY world generation: realistic mountains, connected rivers/waterbodies,
   seamless biome transitions, and matching DH terrain with low overhead. Do not add
   survival systems, progression, classes or a DormCore framework to acceptance.
-- Latest user feedback rejects v3 entirely: one biome, bare terrain, isolated
+- Feedback rejected v3 entirely: one biome, bare terrain, isolated
   oversized peaks and broken far chunks. Keep Minecraft's gameplay scale and
   varied fantasy-friendly geography. Epic Terrain's existing world was judged
   promising, but its biome regions are too large. Reuse the complete native
   generation recipe with proper credit; do not rebuild another simplified
   height-only approximation or scale mountain relief fourfold.
+- The owner accepted v4 (0.2.0-dev.1) visually and called performance ideal on
+  the delivered profile: near16, DH128 medium, 120 FPS cap, VSync on, simulation8.
+  Preserve that terrain recipe and those settings. The named creation-screen
+  type is Immersive Landscapes. Future pack structures and their placement
+  must be designed for this accepted generation, not replace its geography.
 - The old G0-G7 / up-to-100-hour plan was rejected as over-scoped. Use the replacement
   G0-G3 plan; prioritize existing engine APIs and selective reuse of reference code.
 - Start with `docs/next-agent.md`, then `docs/implementation-plan.ru.md`. Resume the
@@ -20,7 +25,8 @@
   test, preview image, successful build or screenshot alone is not completion.
 - Performance aspiration: **32 actual near chunks, 120 FPS**, with farther DH
   terrain. Keep near distance distinct from DH distance. This is a target, not an
-  achieved result. Offer settings for older PCs; preserve heavy-modpack headroom.
+  achieved result. It is a future aspiration, not a blocker to the owner's
+  accepted near16 profile. Offer settings for older PCs; preserve pack headroom.
 - The owner accepts even roughly 10x longer world preparation to improve gameplay
   performance. Prefer persistent preprocessing and bounded asynchronous work;
   never hide a warm-only test as fresh-world performance.

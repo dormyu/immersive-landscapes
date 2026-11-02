@@ -1,6 +1,6 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.2.0-dev.1"
+version = "0.2.0-dev.2"
 priority = 110
 
 [compatibility]
@@ -34,4 +34,42 @@ id = "list"
 kind = "HEAD"
 target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
 helper = "list.rs"
-bindings = [{ name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" }]
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# The native preset occupies the normal-world slot. Name that slot honestly
+# without changing its persisted generator identity or existing world's data.
+[[module]]
+id = "world_type_ui"
+file = "crates/horizon-client-render/src/lib.rs"
+name = "immersive_landscapes_ui"
+source = "world_type_ui.rs"
+visibility = "pub"
+
+[[injection]]
+id = "world_type_name"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::title::create_world::tr"
+helper = "world_type_name.rs"
+bindings = [{ name = "key", ty = "&str", value = "key" }]
+
+[[injection]]
+id = "world_type_button"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::title::create_world::labelled"
+helper = "world_type_button.rs"
+bindings = [
+  { name = "key", ty = "&str", value = "key" },
+  { name = "value", ty = "&str", value = "&value" },
+]
+
+[[injection]]
+id = "world_type_toggle"
+kind = "HEAD"
+target = "horizon_client_render::mod_list::ModList::save"
+helper = "world_type_toggle.rs"
+bindings = [{ name = "mods", ty = "&crate::mod_list::ModList", value = "self" }]

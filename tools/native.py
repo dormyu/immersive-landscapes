@@ -41,7 +41,8 @@ def package():
         "mixins": json.loads((ROOT / "compatibility.json").read_text())["horizon_mixins_revision"],
     }
     files = {"horizon-native.json": json.dumps(manifest, indent=2).encode()}
-    for name in ("horizon-mixin.toml", "preset.generated.rs", "preset_adapter.rs", "prepare.rs", "list.rs"):
+    for name in ("horizon-mixin.toml", "preset.generated.rs", "preset_adapter.rs", "prepare.rs", "list.rs",
+                 "world_type_ui.rs", "world_type_name.rs", "world_type_button.rs", "world_type_toggle.rs"):
         files["mixins/immersive_landscapes/" + name] = (BUNDLE / name).read_bytes()
     for name in ("LICENSE", "CREDITS.md", "compatibility.json", "docs/native-build.md",
                  "tools/patches/horizon-mixins-boundary-head.patch", "third-party/horizon-mixins-LICENSE"):

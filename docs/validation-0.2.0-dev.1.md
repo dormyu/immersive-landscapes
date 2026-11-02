@@ -44,11 +44,15 @@ near chunks under that cap accumulated over100k pending sections and memory
 pressure. It is not shipped as an optimization. Queue size and queue-processing
 time both need bounds before32-chunk smoothness acceptance.
 
-## Open acceptance
+## Owner acceptance and remaining refinements
 
-The owner has not accepted this replacement's visuals. Full biome ecotones,
-near/far water/material agreement, cold movement and the final32/120 budget
-remain open. Epic's noise rivers are not a validated drainage/delta simulation.
+On 2 November 2026 the owner played the delivered version, accepted the visuals
+and called performance ideal at the existing near16 / DH128 medium settings
+(120 FPS cap, VSync on, simulation8). This is first-hand acceptance of that
+profile, separate from the instrumented measurements above. Do not list visual
+acceptance or near16 performance as pending. Full biome ecotones, near/far
+water/material agreement and the future32/120 and heavy-pack budgets remain
+refinements. Epic's noise rivers are not a validated drainage/delta simulation.
 The Windows DH thread-local shutdown issue was fixed by stopping its session
 atGame::shut_down before process teardown. Solo and both clients with DH enabled
 then exited with code0; so did the server. Both network clients received actual

@@ -32,7 +32,7 @@ does not claim to have invented them.
   retaining wonderfulaichen's [MIT notice](presets/epic-compact/LICENSE).
   The original terrain/river scale and complete native decoration are retained;
   dormyu's preset reduces the climate wavelength and automatically installs the
-  recipe when a normal world is created. [Exact provenance and tuning](presets/epic-compact/IL-PRESET.json)
+  recipe when an Immersive Landscapes world is created. [Exact provenance and tuning](presets/epic-compact/IL-PRESET.json)
   identify the source revision, conversion changes and every registry checksum.
 - [Tellus](https://github.com/Yucareux/Tellus): real-world elevation, climate,
   vegetation and direct distant-terrain sampling as visual/architectural

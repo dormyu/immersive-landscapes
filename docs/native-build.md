@@ -33,10 +33,10 @@ The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
 documented patched tool / combined build or the tested prebuilt DormLab executable.
 Game resources, accounts and worlds are never part of this source package.
 
-## Current generation path (0.2.0-dev.1)
+## Current generation path (0.2.0-dev.2)
 
-Only `preset.generated.rs`, `preset_adapter.rs`, `prepare.rs` and `list.rs` are
-active in the current bundle. The rejected custom ChunkGenerator/LevelShape
+`preset.generated.rs`, `preset_adapter.rs`, `prepare.rs` and `list.rs` implement
+the generation path. The rejected custom ChunkGenerator/LevelShape
 hooks have been removed. `tools/native.py generate` embeds the complete
 `presets/epic-compact` directory, including its upstream license and provenance.
 Registry checksums in `IL-PRESET.json` cover the vendored source-file bytes.
@@ -53,3 +53,19 @@ External presets under `<game>/horizon-mods/immersive-landscapes-preset` are
 copied only into new worlds. They must contain `pack.mcmeta`; symbolic links
 are refused. Such presets are an explicit development override, not a claim
 that arbitrary Java data packs are compatible.
+
+## Named creation-screen type
+
+The enabled mod owns the normal-world generation slot, whose creation-screen
+name is now **Immersive Landscapes**. This is the accepted recipe under an
+accurate display name; it is not a second generator or a save-format migration.
+The persisted Horizon identity remains `minecraft:normal`, descriptor4 and the
+world-local data pack. Flat, large-biome and other slots keep their own behavior.
+
+`world_type_ui.rs` keeps a presentation flag, synchronized at native-mod discovery
+and whenever mod settings are saved. `world_type_name.rs` updates only the
+creation menu's normal-type translation, including next-choice narration.
+`world_type_button.rs` fits the full name in the existing cycle button by omitting
+the redundant localized prefix for this one value. Disabling IL restores Default
+for new worlds; existing IL worlds keep their recipe. No per-frame callback,
+generation work or added filesystem reads are involved in displaying the label.
