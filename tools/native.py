@@ -7,10 +7,12 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import tomllib
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = ROOT / "mixins/immersive_landscapes"
+VERSION = tomllib.loads((ROOT / "Cargo.toml").read_text())["package"]["version"]
 
 
 def generate():
@@ -24,11 +26,11 @@ def generate():
 
 
 def package():
-    out = ROOT / "target/immersive-landscapes-0.1.0-dev.1.hnmod"
+    out = ROOT / f"target/immersive-landscapes-{VERSION}.hnmod"
     out.parent.mkdir(parents=True, exist_ok=True)
     manifest = {
         "schema": 1, "id": "immersive_landscapes", "name": "Immersive Landscapes",
-        "version": "0.1.0-dev.1", "authors": ["dormyu"], "license": "MIT",
+        "version": VERSION, "authors": ["dormyu"], "license": "MIT",
         "game": "26.3",
         "horizon": json.loads((ROOT / "compatibility.json").read_text())["horizon_revision"],
         "mixins": json.loads((ROOT / "compatibility.json").read_text())["horizon_mixins_revision"],

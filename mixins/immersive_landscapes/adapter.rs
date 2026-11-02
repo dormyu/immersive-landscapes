@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 use std::{path::Path, sync::Arc};
 
 pub(super) const ID: &str = "immersive_landscapes";
+pub(super) const VERSION: &str = "0.1.0-dev.2";
 const FILE: &str = "immersive-landscapes.json";
 
 #[derive(Serialize, Deserialize)]
@@ -28,15 +29,18 @@ struct Descriptor {
     side: usize,
     cell_size: f64,
     relief: f64,
+    #[serde(default)]
+    spawn: Option<[i32; 3]>,
 }
 impl Default for Descriptor {
     fn default() -> Self {
         Self {
-            version: 1,
+            version: 2,
             seed: None,
-            side: 257,
-            cell_size: 128.0,
+            side: 513,
+            cell_size: 64.0,
             relief: 1400.0,
+            spawn: None,
         }
     }
 }
@@ -56,6 +60,13 @@ pub(super) fn is_world(root: &Path) -> bool {
 
 pub(super) fn shape() -> LevelShape {
     LevelShape::new(-64, 2096, 2096, true).expect("valid IL height range")
+}
+
+pub(super) fn spawn_origin(root: &Path) -> Option<((i32, i32), i32)> {
+    let descriptor: Descriptor =
+        serde_json::from_slice(&std::fs::read(root.join(FILE)).ok()?).ok()?;
+    let [x, y, z] = descriptor.spawn?;
+    Some(((x.div_euclid(16), z.div_euclid(16)), y))
 }
 
 pub(super) fn prepare(
@@ -103,7 +114,7 @@ pub(super) fn streaming(
     features: &[String],
 ) -> StreamResult {
     let mut descriptor: Descriptor = serde_json::from_slice(&std::fs::read(root.join(FILE))?)?;
-    if descriptor.version != 1 || descriptor.seed.is_some_and(|saved| saved != seed) {
+    if descriptor.version != 2 || descriptor.seed.is_some_and(|saved| saved != seed) {
         return Err("Immersive Landscapes: incompatible generator version or world seed".into());
     }
     if shape != self::shape() {
@@ -140,6 +151,10 @@ pub(super) fn streaming(
     let biomes =
         super::world_loading::packed_biomes(root, &options.resources, res.biomes(), features);
     let inner = Arc::new(Terrain::new(landscape, pack.assets.registry, &biomes)?);
+    if descriptor.spawn.is_none() {
+        descriptor.spawn = Some(inner.choose_spawn());
+        descriptor.write(root)?;
+    }
     let save = Arc::new(SaveDir::new(
         horizon_client::save::dimension_dir(root, "minecraft:overworld"),
         shape,
@@ -264,12 +279,15 @@ impl Terrain {
             / 8.0;
         let snowline = 1120.0 + variation(x, z, 128.0, 37) * 160.0;
         let alpine = ((s.ground - 650.0) / 430.0).clamp(0.0, 1.0);
-        let forest = ((s.climate.moisture - 0.15) * 1.2).clamp(0.0, 0.8)
+        let forest = ((s.climate.moisture - 0.10) * 1.6).clamp(0.0, 0.9)
             * (1.0 - alpine)
             * (1.0 - (slope / 0.75).clamp(0.0, 1.0));
-        let top = if height > snowline as i32 && slope < 0.85 {
+        let rock = ((alpine - 0.3) * 1.5 + (slope - 0.3).max(0.0)).clamp(0.0, 1.0);
+        let snow = ((s.ground - snowline + 80.0) / 160.0).clamp(0.0, 1.0);
+        let patch = variation(x, z, 28.0, 73);
+        let top = if patch < snow && slope < 0.85 {
             self.snow
-        } else if slope > 0.65 || alpine > 0.75 {
+        } else if slope > 1.0 || patch < rock {
             self.stone
         } else if water > height + 1 {
             if height <= 64 { self.sand } else { self.gravel }
@@ -365,11 +383,11 @@ impl Terrain {
             }
         }
         // Global cells, clipped into each chunk: canopies continue across chunk borders.
-        for gz in (cz * 16 - 4).div_euclid(12)..=(cz * 16 + 19).div_euclid(12) {
-            for gx in (cx * 16 - 4).div_euclid(12)..=(cx * 16 + 19).div_euclid(12) {
+        for gz in (cz * 16 - 4).div_euclid(9)..=(cz * 16 + 19).div_euclid(9) {
+            for gx in (cx * 16 - 4).div_euclid(9)..=(cx * 16 + 19).div_euclid(9) {
                 let h = hash(gx, gz, self.landscape.basin().field.config.seed);
-                let wx = gx * 12 + 3 + (h % 6) as i32;
-                let wz = gz * 12 + 3 + ((h >> 8) % 6) as i32;
+                let wx = gx * 9 + 2 + (h % 5) as i32;
+                let wz = gz * 9 + 2 + ((h >> 8) % 5) as i32;
                 let c = self.column(wx, wz);
                 if c.top != self.grass
                     || c.water > c.height + 1
@@ -413,6 +431,26 @@ impl Terrain {
         }
         share_uniform(&mut chunk.sections);
         chunk
+    }
+
+    fn choose_spawn(&self) -> [i32; 3] {
+        let centre = self.column(0, 0);
+        let mut best = (f64::INFINITY, [0, centre.height + 1, 0]);
+        for z in -24..=24 {
+            for x in -24..=24 {
+                let (x, z) = (x * 128, z * 128);
+                let c = self.column(x, z);
+                if c.top != self.grass || c.water > c.height + 1 || !(80..700).contains(&c.height) {
+                    continue;
+                }
+                let score = f64::from((c.height - 350).abs()) * 2.0
+                    + f64::from(x).hypot(f64::from(z)) * 0.02;
+                if score < best.0 {
+                    best = (score, [x, c.height + 1, z]);
+                }
+            }
+        }
+        best.1
     }
 }
 

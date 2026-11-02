@@ -1,6 +1,6 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.1.0-dev.1"
+version = "0.1.0-dev.2"
 priority = 110
 
 [compatibility]
@@ -54,6 +54,14 @@ bindings = [
   { name = "seed", ty = "i64", value = "seed" },
   { name = "features", ty = "&[String]", value = "enabled_features" },
 ]
+
+[[injection]]
+id = "spawn"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::initial_spawn::Game<'_>::spawn_origin"
+helper = "spawn.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "self" }]
 
 [[injection]]
 id = "list"

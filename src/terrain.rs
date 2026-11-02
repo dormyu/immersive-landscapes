@@ -132,10 +132,26 @@ fn macro_height(x: f64, z: f64, span: f64, c: Config) -> f64 {
         + noise(x / 4300.0, z / 4300.0, c.seed ^ 71) * 600.0;
     let shoulder = (-(across / 3300.0).powi(2)).exp();
     let crest = (-(across / 1050.0).powi(2)).exp();
-    let massifs = 0.68 + 0.32 * noise(along / 2800.0, 0.5, c.seed ^ 17);
+    let massifs = 0.55 + 0.45 * (noise(along / 1900.0, 0.5, c.seed ^ 17) * 0.5 + 0.5);
+    // Nested ridge networks break the broad uplift into connected spurs and valleys.
+    // Their amplitudes shrink with wavelength; small independent needles never
+    // supply the mountain's full height. Drainage is solved after this relief.
+    let mut ridges = 0.0;
+    let mut weight = 1.0;
+    let mut total = 0.0;
+    for (i, scale) in [1800.0, 750.0, 300.0, 120.0].into_iter().enumerate() {
+        let ridge = 1.0 - noise(x / scale, z / scale, c.seed ^ (171 + i as u64 * 47)).abs();
+        ridges += weight * ridge * ridge;
+        total += weight;
+        weight *= 0.43;
+    }
+    let folded = ridges / total;
     let hills = noise(x / 1900.0, z / 1900.0, c.seed ^ 33) * 85.0;
     c.sea_level - 75.0
-        + coast * (145.0 + hills + c.relief * massifs * (0.65 * shoulder + 0.35 * crest))
+        + coast
+            * (145.0
+                + hills
+                + shoulder * (220.0 + c.relief * massifs * (0.35 + 0.65 * crest) * folded))
 }
 
 fn smooth(t: f64) -> f64 {
