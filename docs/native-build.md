@@ -39,6 +39,9 @@ Only `preset.generated.rs`, `preset_adapter.rs`, `prepare.rs` and `list.rs` are
 active in the current bundle. The rejected custom ChunkGenerator/LevelShape
 hooks have been removed. `tools/native.py generate` embeds the complete
 `presets/epic-compact` directory, including its upstream license and provenance.
+Registry checksums in `IL-PRESET.json` cover the vendored source-file bytes.
+Git preserves those bytes; embedding text normalizes line endings to LF before
+the native loader writes the world's copy, without changing registry values.
 
 The cancellable HEAD on `WorldRequest::prepare_world` installs that data pack
 before the normal engine loads it. Dedicated servers call the same method, so
