@@ -1,7 +1,9 @@
 # Roadmap
 
 Execution order and acceptance gates: [detailed plan (Russian)](implementation-plan.ru.md).
-Next action: **G0, integrate and launch the existing generator with Horizon and DH**.
+Current step: **G1, replace the rejected visual basis and fix near/far agreement**.
+G0 created actual Horizon worlds with DH. Epic Terrain is now a running independent
+comparison fixture; see [findings](reference-findings.md).
 The replacement G0-G3 plan covers world generation only. The old broad G0-G7 plan
 and its time estimate were withdrawn after the owner's scope correction.
 The owner's performance aspiration is 32 near chunks / 120 FPS with farther DH
@@ -17,7 +19,7 @@ terrain, adjustable for older hardware. It is not an achieved benchmark.
 
 ## Before the first playable experimental mod
 
-- [ ] A versioned Horizon native bundle, using the same source for chunks and LOD.
+- [x] A versioned Horizon native bundle, using the same source for chunks and LOD.
 - [ ] Explicit finite-world experiment and a design for seamless neighbouring regions.
 - [ ] Height-layout, lighting, collision and safe-spawn validation for large relief.
 - [ ] Water voxelization, river junctions and actual delta/estuary terrain.
@@ -25,6 +27,11 @@ terrain, adjustable for older hardware. It is not an achieved benchmark.
 - [ ] Save/reload and deterministic generator-version handling.
 - [ ] Solo and two-client Rust-server integration tests, including player edits.
 - [ ] CPU/RAM/frame-time/network budgets with room for other heavy mods.
+
+The current native prototype is a development checkpoint, not an accepted release.
+G0 persistence passed; current visuals, current-version persistence and two-client
+custom-terrain checks are still open. High static FPS on the simplified prototype
+does not establish a performance budget for the reference-based replacement.
 
 ## Later
 

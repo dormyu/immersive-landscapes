@@ -1,75 +1,89 @@
-# Следующая модель: реализовать генератор в Horizon
+# Продолжение Immersive Landscapes
 
-Обновлено 2026-11-02. **Сначала прочитать это, затем implementation-plan.ru.md.**
-Автор уточнил: только реалистичные горы, реки/водоёмы и плавные переходы биомов,
-с DH и хорошим перформансом. Survival/прогрессия/классы/отдельный движок не входят.
-Прежняя оценка до 100 часов и план G0–G7 заменены четырьмя этапами G0–G3.
-Последний запрос автору выполнен как передача плана; текущий агент закончил работу.
+Актуально на 2026-11-02. Читать сначала этот файл, затем
+[план](implementation-plan.ru.md) и [результаты референсов](reference-findings.md).
+Автор: dormyu. Репозиторий: https://github.com/dormyu/immersive-landscapes.
 
-## Первый конкретный шаг
+## Что уже сделано
 
-Сделать native bundle и подключить **уже написанный** `Landscape::sample` к
-`ChunkGenerator` и `LodSampler`, используя штатные `Persistent` и `Streaming`.
-Первый результат — новый игровой мир с нашими блоками и DH. Не начинать с нового
-плана, переписывания DH или исследования всех модов. Хуки-кандидаты и критерии
-проверки перечислены в [плане](implementation-plan.ru.md).
+- G0 выполнен: native bundle подключает Rust core к ChunkGenerator, Persistent,
+  Streaming и LodSampler. Это мод Horizon, отдельный движок не создаётся.
+- Билд G0 собран за 9m54; первая версия создала игровой мир с DH и сохранила
+  emerald block после закрытия/открытия. Native-код на main начиная с 24bb47e.
+- Вторая версия (0.1.0-dev.2, descriptor2, grid513/cell64) собрана за 7m03,
+  запущена на двух seeds. Двенадцать core tests и clippy прошли.
+- Автор отверг картинку: плоские склоны, лысые горы, неестественная композиция.
+  G1 НЕ принят. Не подкручивать Gaussian belt бесконечно и не выдавать FPS за красоту.
+- Статические visible1080p near32/DH256 тесты упрощённого прототипа превышали120FPS.
+  Это не результат для красивого нового генератора, движения или свежих чанков.
+- Старый тест near32 с29.7FPS был ограничен unfocused cap и помечен invalid.
+- DH в DormLab — ранее проверенный порт/адаптация, не портировать заново.
+  Новый fog fix с17 core tests уже в QA-бинарнике, но ещё не установлен в DormLab.
 
-## Точное исходное состояние
+## Epic Terrain: реальный результат последней проверки
 
-- Репозиторий: `E:/Games/Minecraft/immersive-landscapes`, GitHub dormyu/immersive-landscapes.
-  Автор коммитов dormyu, verified local identity уже настроена; global не менять.
-- Terrain library уже есть: хребет/предгорья, климат, сток/озёра/притоки, кандидаты
-  дельт, indexed sampler. 11 тестов прошли в сохранённом QA. **Игрового адаптера нет.**
-- DH: `E:/Games/Minecraft/RustCore/development/distant-horizons`, local `2ab4f24`.
-  Установлен в DormLab, 16 тестов и solo/two-client checks выполнены. Не портировать снова.
-- Engine pin `c9d474dd9116e84c243f8992d75c11314df56f06`; source:
-  `E:/Games/Minecraft/RustCore/reports/terrain-research-2026-11-02/nightly-source-c9d474d/horizon-c9d474d`.
-- Mixins pin `0d6b103c70633d8fd9443d8d0acd3aadaacedb06`.
-- Lab: `E:/Games/Minecraft/RustCore/packs/DormLab`; `rustcore/native-build.json`.
-- Rollback: `E:/Games/Minecraft/RustCore/qa/dormlab-before-dh-2026-11-02`.
-- QA/status: `E:/Games/Minecraft/RustCore/reports/development-2026-11-02/WORK-IN-PROGRESS.md`.
-  Там native-control gotchas, private QA paths, предыдущие проверки и известные ограничения.
-- Цель: баланс красоты/затрат, идеал 32 near chunks / 120 FPS, DH дальше, слабым ПК
-  настройки. До ~10x дольше подготовка допустима. Результат FPS ещё не доказан.
-- PC i5-9400F 6C/6T, RTX2060, ~16GiB, desktop1080p144Hz. E HDD, всё хранить на E.
-  Не выводить VRAM по усечённому WMI AdapterRAM. Пользователь разрешил сборки до
-  ручной перезагрузки; самому не перезагружать и не менять подкачку.
+- Автор попросил Tellus и Epic Terrain; предпочитает procedural world по seed.
+  Earth DEM допустим, но не выбран обязательной основой.
+- Epic Terrain MIT source08507bd3d606ad440b40a5fa726e0098d7309347 находится в
+  ../RustCore/development/references/Epic-Terrain и остаётся неизменным.
+- Его 1.21 pack адаптирован в26.3 через штатный Rust horizon-port-pack и наш
+  tools/prepare_epic_reference.py. Восемь узких compatibility changes задокументированы.
+  LICENSE и PROVENANCE.json сохраняют автора wonderfulaichen.
+- Реальная загрузка в Horizon удалась; новый мир Epic-Reference-v2 находится
+  в независимом QA profile epic-probe. IL отключён: это честный чужой референс,
+  а не переименованный в IL генератор. После последних fixes unsupported_features=[].
+- Клиент прочитал stone на -3072/347/-2560: высота выше ванильной действительно работает.
+- Native diagnostic:10 выбранных сухих колонок совпали по высоте с настоящими
+  proto chunks. В речных точках расхождение: например8192/-3072 настоящая водаY105,
+  far sampleY108 иwater=None. Все данные в reports/epic-sampler-differential.json.
+- Epic скульптит русло и воду через material rules, а Horizon far shortcut
+  применяет их только к верхним8 блокам и пропускает slope rules. Не считать
+  повышение DH quality исправлением этих данных. Причины всех артефактов ещё не установлены.
 
-## Использование исходников референсов
+## Следующее действие
 
-FreeTerraForged `1.21.1_unstable`/LICENSE проверены через GitHub 2026-11-02:
-MIT, отдельный `Erosion.java` исключён под MPL-2.0. Полного совместимого Horizon
-билда этого генератора у нас нет. Брать конкретные полезные алгоритмы после pin
-и проверки header/license, с attribution; не переписывать Java-инфраструктуру мода.
-Другие референсы и ограничения указаны в плане и CREDITS.
+Использовать проверенные Epic noise/spline/surface recipes как базу сравнения и
+источник конкретных настроек для нового IL. Реально использованные файлы указывать
+как derived с MIT notice. Не просто переименовывать весь Epic pack.
+Сохранить собственную связную гидрологию: шумовые реки Epic не доказывают сток,
+дельты и согласованные истоки/устья. Сначала проверить near/far water/materials
+на одних координатах, затем оценивать цельный красивый мир.
 
-## Команды и обязательные ограничения
+Отдельно исправить IL LOD: Surface-only fallback заполняет подземелье верхним
+материалом и не содержит деревьев. Нужны слои и тот же canopy, что в чанках.
+У DH local adapter пока width1 per point; remote уже использует tiles/grid.
+Батчирование local делать с правильным half-stride: runtime уже передаёт центр,
+а Horizon grid принимает угол и сам добавляет width/2. Не сдвинуть дважды.
 
-Сначала parent AGENTS.md и RustCore/AGENTS.md. Перед изменением engine stage читать
-его AGENTS.md/CONTRIBUTING.md. Старые миры/аккаунты/clean baseline сохраняются.
+## Сборка и ограничения
 
-```powershell
-. E:\Games\Minecraft\RustCore\development\scripts\Enter-RustDev.ps1
-$env:CARGO_TARGET_DIR = 'E:\Games\Minecraft\immersive-landscapes\target'
-cargo fmt --all -- --check
-cargo test --locked
-cargo clippy --all-targets --locked -- -D warnings
-```
+- Всё на E:, читать parent AGENTS.md и ../RustCore/AGENTS.md. Профиль/QA:
+  ../RustCore/qa/immersive-landscapes-2026-11-02; актуальный журнал:
+  ../RustCore/reports/development-2026-11-02/WORK-IN-PROGRESS.md.
+- Перед Rust: source ../RustCore/development/scripts/Enter-RustDev.ps1;
+  RUSTUP_TOOLCHAIN=stable. Cargo jobs1; никаких параллельных полных engine builds.
+  Не перезагружать ПК. Полные сборки до ручной перезагрузки разрешены автором.
+- Engine c9d474dd9116e84c243f8992d75c11314df56f06 / MC26.3.
+  Mixins0d6b103 + local boundary-HEAD patch19140348cf112441a6d535a11332b3678ac70474.
+  tools/native.py выбирает patched tool; guard передаёт --with и пишет логи на E.
+  См. native-build.md. Не редактировать pristine/stage вручную.
+- Rust client и Rust dedicated server. Соло обязательно; два клиента ещё нужно
+  проверить именно с новым генератором. Survival, классы и DormCore не добавлять.
+- Цель32 настоящих near chunks/120FPS, DH отдельно; слабым ПК настройки,
+  запас будущей тяжёлой сборке. Долгая предгенерация допустима.
+- DH distance допустим64/128/256/512/1024. Значения96/192 молча падают в64.
+- Native ctl вместо computer-use. Control off в доставленных экземплярах;
+  control sockets/private auth никогда не читать/коммитить. FPS мерить в видимом
+  окне с inactivityFpsLimit=minimized, без одновременной компиляции.
+- Старые миры, аккаунты и чистый RustCore не менять. DormLab пока DH-only;
+  визуально отвергнутый IL туда не устанавливался. Откат перед установкой в QA/before-install.
+- FreeTerraForged sourceefc7565b6e19bf5ec5ee5abcb0bf9a2c6072a70b тоже скачан.
+  MIT, кроме исключённого MPL tile/filter/Erosion.java. Не читать/переносить его;
+  noise/module/Erosion.java отдельно MIT. Прямого переноса FTF кода пока нет.
+- Tellus LGPL: изучен подход DEM/climate/canopy/direct LOD, код в MIT IL не копировался.
 
-Сборочный путь DH уже имеет `tools/horizon.py stage --with <IL bundle>` и
-`build --with <IL bundle>`. Но **Run-GuardedBuild.py сейчас не передаёт --with**:
-сначала добавить forwarding/combined wrapper, сохранив guard C>=6GiB, jobs=1,
-TEMP/TMP/Cargo/Rustup/targets на E и остановку только своего дерева процессов.
-Папка нашего bundle `mixins/immersive_landscapes` ещё не создана.
-Нельзя руками менять `target/stage` или запускать две полные сборки параллельно.
+## Когда можно закончить
 
-Обычные API/native hooks использовать первыми. `make_streaming` и `level_shapes`
-проверить planner/compiler; это пока кандидаты. `lod_source_in` уже берёт источник
-из streaming. `Chunk::with_layout`, `Section::from_blocks`, `share_uniform` позволяют
-не писать хранение/освещение/мешер заново. Сам код мода остаётся Rust.
-
-Не публиковать assets/prepared resources/accounts/control tokens/worlds. MIT IL и
-LGPL DH сохраняют свои notices. Сообщения третьим лицам/claim issues не отправлять.
-Работать CLI/native control; `bench`/`stats`/`fly ... raw` уже доступны. Offscreen —
-для smoke-tests; итоговые FPS только в видимом окне с записанными настройками.
-Короткий отчёт после реального результата. Завершённость не подменять обещаниями.
+G1: автор принимает вид гор/воды/биомов; G2: representative frame times и budget,
+а не только статичный кадр; G3: pinned artifacts/credits/rollback, solo save/restart,
+два Rust-клиента, обычный запуск из Prism. Готовность мода пока не достигнута.

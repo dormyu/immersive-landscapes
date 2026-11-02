@@ -6,11 +6,11 @@ An original terrain project by **dormyu** for Minecraft running on the **Horizon
 Rust client and Rust server**. The aim is large mountain massifs and foothills,
 continuous climate transitions, and water that belongs to a connected landscape.
 
-> **Early development — a runnable terrain core, not an installable game mod yet.**
-> This repository currently builds a regional generator and preview CLI.
-> The Horizon world-generation adapter, infinite-world boundaries, multiplayer
-> integration and in-game performance have not been validated. There is no `.jar`
-> and no Java compatibility target.
+> **Experimental native mod — visual acceptance is still open.**
+> The generator has been built into Horizon and tested in real single-player worlds
+> with Distant Horizons. The current terrain prototype was rejected visually;
+> it is not a recommended release. Seamless regions, final near/far consistency,
+> two-client integration and a representative performance budget remain open.
 
 ![Generated regional terrain and drainage](docs/images/terrain-preview.png)
 
@@ -31,8 +31,9 @@ bounded region; river strokes are exaggerated for visibility.*
   distributary creation, rejected delta sites, channel geometry and boundaries.
 
 Drainage is compiled once for a region. Terrain queries do not simulate fluids
-or solve the watershed again. The same sampling interface is intended to feed
-nearby chunks and distant terrain. That integration remains to be built.
+or solve the watershed again. The native adapter feeds nearby chunks and distant
+terrain from that same landscape. Its current far columns still need layered
+materials and vegetation.
 
 ## Try the core
 
@@ -84,9 +85,14 @@ defines integration gates, visual acceptance and performance measurements. The
 
 ## Compatibility and related work
 
-The local integration target is Horizon Nightly `c9d474d` / Minecraft 26.3.
-The standalone core does not link Horizon yet; this pin is **not a compatibility
-claim for a playable mod**.
+The native integration target is Horizon Nightly `c9d474d` / Minecraft 26.3.
+See [native build notes](docs/native-build.md) for the pinned tool patch and
+combined build. A native bundle requires compilation; copying it beside the
+game executable does not activate its Rust code.
+
+Epic Terrain's MIT worldgen data has also been adapted and loaded as an independent
+reference in Horizon. [Reference findings](docs/reference-findings.md) distinguish
+that comparison fixture from our generator and describe the remaining DH issues.
 
 Distant rendering is a separate dependency. The modpack's adaptation of
 [Distant Horizons for Horizon Client](https://github.com/denizsahin7744/distant-horizons-for-horizon-client)

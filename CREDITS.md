@@ -20,6 +20,16 @@ does not claim to have invented them.
 - [Tectonic](https://modrinth.com/mod/tectonic): large mountain ranges and continents.
 - [Lithosphere](https://modrinth.com/mod/lithosphere): broad valleys and smooth
   regional transitions.
+- [Epic Terrain](https://github.com/wonderfulaichen/Epic-Terrain), by
+  wonderfulaichen: spline/noise composition, alpine relief, coasts and river
+  surface rules. MIT source revision `08507bd3d606ad440b40a5fa726e0098d7309347`
+  was adapted into an independent local Horizon comparison fixture. The
+  [preparation tool](tools/prepare_epic_reference.py) preserves its license and
+  records every compatibility change. Its generator is not bundled or renamed
+  as Immersive Landscapes.
+- [Tellus](https://github.com/Yucareux/Tellus): real-world elevation, climate,
+  vegetation and direct distant-terrain sampling as visual/architectural
+  references. No Tellus code is included in this MIT project.
 
 These are inspirations, not bundled dependencies or claims that their code was
 ported. Future code or asset reuse must be recorded separately with its actual
