@@ -1,7 +1,7 @@
 # Credits
 
 **dormyu** — project author and designer of Immersive Landscapes.
-GitHub account: [dormyyy](https://github.com/dormyyy).
+GitHub account: [dormyu](https://github.com/dormyu).
 
 ## Original implementation
 
