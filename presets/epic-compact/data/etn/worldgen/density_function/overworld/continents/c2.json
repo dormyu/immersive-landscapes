@@ -1,0 +1,55 @@
+{
+  "input": {
+    "left": {
+      "input": {
+        "spline": {
+          "coordinate": "etn:overworld/continents/c",
+          "points": [
+            {
+              "derivative": 0,
+              "location": -0.85,
+              "value": -0.4
+            },
+            {
+              "derivative": 0,
+              "location": -0.75,
+              "value": {
+                "coordinate": {
+                  "input": "etn:overworld/erosion/e/1",
+                  "type": "minecraft:abs"
+                },
+                "points": [
+                  {
+                    "derivative": 0,
+                    "location": -1,
+                    "value": -0.45
+                  },
+                  {
+                    "derivative": 0,
+                    "location": 1,
+                    "value": -0.85
+                  }
+                ]
+              }
+            },
+            {
+              "derivative": 0,
+              "location": -0.6,
+              "value": -0.6
+            },
+            {
+              "derivative": 0,
+              "location": 0.95,
+              "value": 1
+            }
+          ]
+        },
+        "type": "minecraft:spline"
+      },
+      "type": "minecraft:blend_density"
+    },
+    "right": -1,
+    "type": "minecraft:mul"
+  },
+  "type": "minecraft:cache"
+}

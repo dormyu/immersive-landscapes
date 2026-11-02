@@ -32,3 +32,21 @@ This development `.hnmod` contains source, not a dynamically loaded game DLL.
 The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
 documented patched tool / combined build or the tested prebuilt DormLab executable.
 Game resources, accounts and worlds are never part of this source package.
+
+## Current generation path (0.2.0-dev.1)
+
+Only `preset.generated.rs`, `preset_adapter.rs`, `prepare.rs` and `list.rs` are
+active in the current bundle. The rejected custom ChunkGenerator/LevelShape
+hooks have been removed. `tools/native.py generate` embeds the complete
+`presets/epic-compact` directory, including its upstream license and provenance.
+
+The cancellable HEAD on `WorldRequest::prepare_world` installs that data pack
+before the normal engine loads it. Dedicated servers call the same method, so
+their new normal worlds receive the same generation recipe. Existing vanilla
+worlds are skipped; descriptor4 worlds retain their own saved recipe. Older
+prototype descriptors are refused rather than silently changing their terrain.
+
+External presets under `<game>/horizon-mods/immersive-landscapes-preset` are
+copied only into new worlds. They must contain `pack.mcmeta`; symbolic links
+are refused. Such presets are an explicit development override, not a claim
+that arbitrary Java data packs are compatible.

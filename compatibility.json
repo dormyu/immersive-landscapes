@@ -1,7 +1,7 @@
 {
   "horizon_revision": "c9d474dd9116e84c243f8992d75c11314df56f06",
   "horizon_mixins_revision": "0d6b103c70633d8fd9443d8d0acd3aadaacedb06",
-  "generator_version": 2,
+  "generator_version": 4,
   "horizon_mixins_patch": "tools/patches/horizon-mixins-boundary-head.patch",
   "horizon_mixins_patch_sha256": "1813f3751051b13842cedc847ae49478f24c2be2c4fd94c5bde5b48a5cdeea77",
   "horizon_mixins_local_commit": "19140348cf112441a6d535a11332b3678ac70474"

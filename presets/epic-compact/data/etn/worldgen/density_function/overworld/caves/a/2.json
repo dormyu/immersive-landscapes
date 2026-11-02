@@ -1,0 +1,12 @@
+{
+  "input": {
+    "input": {
+      "noise": "etn:c/2",
+      "type": "minecraft:noise",
+      "xz_scale": 0.4,
+      "y_scale": 1
+    },
+    "type": "minecraft:abs"
+  },
+  "type": "minecraft:cache"
+}

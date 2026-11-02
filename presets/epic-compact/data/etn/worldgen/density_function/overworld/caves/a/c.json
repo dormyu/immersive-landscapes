@@ -1,0 +1,63 @@
+{
+  "input": {
+    "left": {
+      "spline": {
+        "coordinate": {
+          "noise": "minecraft:temperature",
+          "type": "minecraft:noise",
+          "xz_scale": 2,
+          "y_scale": 0
+        },
+        "points": [
+          {
+            "derivative": 0,
+            "location": -0.2,
+            "value": 1
+          },
+          {
+            "derivative": 0,
+            "location": 0.2,
+            "value": {
+              "coordinate": "etn:overworld/caves/a/b",
+              "points": [
+                {
+                  "derivative": 0,
+                  "location": -1,
+                  "value": -1
+                },
+                {
+                  "derivative": 0,
+                  "location": 1,
+                  "value": 1
+                }
+              ]
+            }
+          },
+          {
+            "derivative": 0,
+            "location": 1,
+            "value": {
+              "coordinate": "etn:overworld/caves/a/b",
+              "points": [
+                {
+                  "derivative": 0,
+                  "location": -1,
+                  "value": -1
+                },
+                {
+                  "derivative": 0,
+                  "location": 1,
+                  "value": 1
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "type": "minecraft:spline"
+    },
+    "right": 0,
+    "type": "minecraft:add"
+  },
+  "type": "minecraft:cache"
+}

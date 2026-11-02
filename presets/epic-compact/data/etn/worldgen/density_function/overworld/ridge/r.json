@@ -1,0 +1,29 @@
+{
+  "input": {
+    "left": {
+      "spline": {
+        "coordinate": {
+          "left": "etn:overworld/ridge/1",
+          "right": "etn:overworld/ridge/2",
+          "type": "minecraft:add"
+        },
+        "points": [
+          {
+            "derivative": 0,
+            "location": -0.5,
+            "value": -1
+          },
+          {
+            "derivative": 0,
+            "location": 1,
+            "value": 1
+          }
+        ]
+      },
+      "type": "minecraft:spline"
+    },
+    "right": 1,
+    "type": "minecraft:mul"
+  },
+  "type": "minecraft:cache"
+}

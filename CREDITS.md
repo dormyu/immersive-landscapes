@@ -5,8 +5,10 @@ GitHub account: [dormyu](https://github.com/dormyu).
 
 ## Original implementation
 
-The terrain, drainage, surface sampling, tests and preview tools in this repository
-are original project code, licensed under MIT. Priority-flood, drainage graphs,
+The native world-creation integration, preset tuning/tools, experimental drainage
+library, tests and preview tools are original code by dormyu, licensed under MIT.
+The old height-only prototypes were rejected and do not drive the current native
+preset. Priority-flood, drainage graphs,
 value noise and spatial indexing are general algorithmic techniques; the project
 does not claim to have invented them.
 
@@ -25,15 +27,19 @@ does not claim to have invented them.
   surface rules. MIT source revision `08507bd3d606ad440b40a5fa726e0098d7309347`
   was adapted into an independent local Horizon comparison fixture. The
   [preparation tool](tools/prepare_epic_reference.py) preserves its license and
-  records every compatibility change. Its generator is not bundled or renamed
-  as Immersive Landscapes.
+  records every compatibility change. Starting with `0.2.0-dev.1`, the full
+  converted generation data is included in [presets/epic-compact](presets/epic-compact),
+  retaining wonderfulaichen's [MIT notice](presets/epic-compact/LICENSE).
+  The original terrain/river scale and complete native decoration are retained;
+  dormyu's preset reduces the climate wavelength and automatically installs the
+  recipe when a normal world is created. [Exact provenance and tuning](presets/epic-compact/IL-PRESET.json)
+  identify the source revision, conversion changes and every registry checksum.
 - [Tellus](https://github.com/Yucareux/Tellus): real-world elevation, climate,
   vegetation and direct distant-terrain sampling as visual/architectural
   references. No Tellus code is included in this MIT project.
 
-These are inspirations, not bundled dependencies or claims that their code was
-ported. Future code or asset reuse must be recorded separately with its actual
-source, revision and license.
+Epic Terrain's data is directly reused as described above. The other terrain
+projects remain references; their Java implementation is not bundled.
 
 ## Separate platform and rendering projects
 
@@ -55,3 +61,9 @@ source, revision and license.
 
 Optional preview tooling uses Pillow, under its own license; it is not a runtime
 dependency of the Rust generator.
+
+[minecraft-agent-skills](https://github.com/Jahrome907/minecraft-agent-skills),
+by Jahrome907, was consulted for world-generation schema/reference validation.
+Its Java loader instructions are not used by the Rust runtime. Its validator's
+Minecraft namespace references were checked against the actual prepared26.3
+vanilla registries; no skill code is included in the native mod.

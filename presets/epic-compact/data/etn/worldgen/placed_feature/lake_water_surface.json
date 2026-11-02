@@ -1,0 +1,35 @@
+{
+  "feature": "etn:lake_water",
+  "placement": [
+    {
+      "count": {
+        "distribution": [
+          {
+            "data": {
+              "type": "minecraft:biased_to_bottom",
+              "max_inclusive": 15,
+              "min_inclusive": 5
+            },
+            "weight": 2
+          },
+          {
+            "data": 1,
+            "weight": 3
+          }
+        ],
+        "type": "minecraft:weighted_list"
+      },
+      "type": "minecraft:count"
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "heightmap": "WORLD_SURFACE_WG",
+      "type": "minecraft:heightmap"
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

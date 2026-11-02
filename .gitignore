@@ -12,3 +12,4 @@ __pycache__/
 *.pyc
 .venv/
 /mixins/immersive_landscapes/core.generated.rs
+mixins/immersive_landscapes/preset.generated.rs

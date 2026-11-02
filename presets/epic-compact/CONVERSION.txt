@@ -1,0 +1,11 @@
+upgraded 1 dimension
+upgraded 1 dimension_type
+upgraded 3 worldgen/biome
+upgraded 1 worldgen/configured_feature
+upgraded 50 worldgen/density_function
+upgraded 26 worldgen/noise
+upgraded 1 worldgen/noise_settings
+upgraded 1 worldgen/placed_feature
+added 5 shared density functions
+not faithful (1x): noise: more than 32 octaves or negative amplitudes (left as they are)
+E:\Games\Minecraft\RustCore\qa\immersive-landscapes-2026-11-02\epic-reference-v2

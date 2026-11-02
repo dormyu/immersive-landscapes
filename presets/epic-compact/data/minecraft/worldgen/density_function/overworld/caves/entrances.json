@@ -1,0 +1,25 @@
+{
+  "input": {
+    "input": "minecraft:overworld/caves/entrances1",
+    "max_exclusive": 0.1,
+    "min_inclusive": -1,
+    "type": "minecraft:range_choice",
+    "when_in_range": {
+      "input": "minecraft:overworld/ridges",
+      "max_exclusive": 1,
+      "min_inclusive": 0.06,
+      "type": "minecraft:range_choice",
+      "when_in_range": {
+        "input": "minecraft:overworld/erosion",
+        "max_exclusive": 1,
+        "min_inclusive": -1,
+        "type": "minecraft:range_choice",
+        "when_in_range": "minecraft:overworld/caves/entrances1",
+        "when_out_of_range": 0.02
+      },
+      "when_out_of_range": 1
+    },
+    "when_out_of_range": 1
+  },
+  "type": "minecraft:cache"
+}

@@ -1,0 +1,49 @@
+{
+  "project": "Epic Terrain (reference fixture, not Immersive Landscapes)",
+  "original_author": "wonderfulaichen",
+  "license": "MIT",
+  "source": "https://github.com/wonderfulaichen/Epic-Terrain",
+  "revision": "08507bd3d606ad440b40a5fa726e0098d7309347",
+  "version_path": "versions/1.20.5-1.21.4",
+  "tested_horizon_revision": "c9d474dd9116e84c243f8992d75c11314df56f06",
+  "converter_sha256": "8929c946c3670a1f4f29716d4a2cd71c8c431eaf5cc44f46f4a1f39499448a26",
+  "changes": [
+    {
+      "file": "data/etn/worldgen/feature/lake_water.json",
+      "change": "explicit lake placement/protection predicates; historical pond parity is unverified"
+    },
+    {
+      "file": "data/etn/worldgen/placed_feature/lake_water_surface.json",
+      "change": "flatten legacy biased-to-bottom integer provider"
+    },
+    {
+      "file": "data/etn/worldgen/biome/zenith_lake.json",
+      "change": "flatten legacy carving-step holder lists"
+    },
+    {
+      "file": "data/etn/worldgen/biome/zenith_lake.json",
+      "change": "pumpkin before normal sugar cane, matching 26.3 decoration ordering"
+    },
+    {
+      "file": "data/minecraft/worldgen/biome/mangrove_swamp.json",
+      "change": "flatten legacy carving-step holder lists"
+    },
+    {
+      "file": "data/minecraft/worldgen/biome/swamp.json",
+      "change": "flatten legacy carving-step holder lists"
+    },
+    {
+      "file": "data/minecraft/worldgen/noise_settings/overworld.json",
+      "change": "default_fluid: pinned Horizon pipeline block-state spelling"
+    },
+    {
+      "file": "data/etn/worldgen/noise/r/magma_caves.json",
+      "change": "archive unreferenced negative-amplitude noise outside registries"
+    }
+  ],
+  "known_limits": [
+    "Lake protection predicates are explicit; exact historical pond-placement parity is unverified.",
+    "Native far sampling differs from real water columns at tested river sites.",
+    "Visual and performance acceptance, solo persistence and two-client QA are separate checks."
+  ]
+}

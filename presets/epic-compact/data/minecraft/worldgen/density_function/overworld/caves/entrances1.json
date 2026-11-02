@@ -1,0 +1,72 @@
+{
+  "input": {
+    "input": {
+      "left": {
+        "spline": {
+          "coordinate": "etn:overworld/continents/c",
+          "points": [
+            {
+              "derivative": 0,
+              "location": 0,
+              "value": {
+                "coordinate": "etn:overworld/caves/a/c",
+                "points": [
+                  {
+                    "derivative": 0,
+                    "location": -1,
+                    "value": -1
+                  },
+                  {
+                    "derivative": 0,
+                    "location": 1,
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "derivative": 0,
+              "location": 0.1,
+              "value": {
+                "coordinate": "etn:overworld/continents/c",
+                "points": [
+                  {
+                    "derivative": 0,
+                    "location": 0.3,
+                    "value": 1
+                  },
+                  {
+                    "derivative": 0,
+                    "location": 0.4,
+                    "value": {
+                      "coordinate": "etn:overworld/caves/b/b",
+                      "points": [
+                        {
+                          "derivative": 0,
+                          "location": -1,
+                          "value": -1
+                        },
+                        {
+                          "derivative": 0,
+                          "location": 1,
+                          "value": 1
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "type": "minecraft:spline"
+      },
+      "right": 0,
+      "type": "minecraft:add"
+    },
+    "max": 1,
+    "min": -1,
+    "type": "minecraft:clamp"
+  },
+  "type": "minecraft:cache"
+}

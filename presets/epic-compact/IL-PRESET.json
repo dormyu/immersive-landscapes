@@ -1,0 +1,159 @@
+{
+  "preset": "immersive-landscapes-epic-compact-v1",
+  "author": "dormyu",
+  "based_on": {
+    "project": "Epic Terrain (reference fixture, not Immersive Landscapes)",
+    "original_author": "wonderfulaichen",
+    "license": "MIT",
+    "source": "https://github.com/wonderfulaichen/Epic-Terrain",
+    "revision": "08507bd3d606ad440b40a5fa726e0098d7309347",
+    "version_path": "versions/1.20.5-1.21.4",
+    "tested_horizon_revision": "c9d474dd9116e84c243f8992d75c11314df56f06",
+    "converter_sha256": "8929c946c3670a1f4f29716d4a2cd71c8c431eaf5cc44f46f4a1f39499448a26",
+    "changes": [
+      {
+        "file": "data/etn/worldgen/feature/lake_water.json",
+        "change": "explicit lake placement/protection predicates; historical pond parity is unverified"
+      },
+      {
+        "file": "data/etn/worldgen/placed_feature/lake_water_surface.json",
+        "change": "flatten legacy biased-to-bottom integer provider"
+      },
+      {
+        "file": "data/etn/worldgen/biome/zenith_lake.json",
+        "change": "flatten legacy carving-step holder lists"
+      },
+      {
+        "file": "data/etn/worldgen/biome/zenith_lake.json",
+        "change": "pumpkin before normal sugar cane, matching 26.3 decoration ordering"
+      },
+      {
+        "file": "data/minecraft/worldgen/biome/mangrove_swamp.json",
+        "change": "flatten legacy carving-step holder lists"
+      },
+      {
+        "file": "data/minecraft/worldgen/biome/swamp.json",
+        "change": "flatten legacy carving-step holder lists"
+      },
+      {
+        "file": "data/minecraft/worldgen/noise_settings/overworld.json",
+        "change": "default_fluid: pinned Horizon pipeline block-state spelling"
+      },
+      {
+        "file": "data/etn/worldgen/noise/r/magma_caves.json",
+        "change": "archive unreferenced negative-amplitude noise outside registries"
+      }
+    ],
+    "known_limits": [
+      "Lake protection predicates are explicit; exact historical pond-placement parity is unverified.",
+      "Native far sampling differs from real water columns at tested river sites.",
+      "Visual and performance acceptance, solo persistence and two-client QA are separate checks."
+    ]
+  },
+  "changes": [
+    {
+      "file": "data/etn/worldgen/density_function/excessive_biomes/temperature1.json",
+      "old_frequency": 0.2,
+      "new_frequency": 0.8
+    },
+    {
+      "file": "data/etn/worldgen/density_function/excessive_biomes/vegetation.json",
+      "old_frequency": 0.2,
+      "new_frequency": 0.8
+    }
+  ],
+  "terrain_horizontal_scale": 1.0,
+  "terrain_vertical_scale": 1.0,
+  "native_pipeline": "Horizon full terrain, caves, ores, biomes, decoration and structures",
+  "note": "Climate wavelength is four times shorter by default; terrain and rivers retain Epic's original Minecraft scale.",
+  "registry_sha256": {
+    "data/etn/worldgen/biome/zenith_lake.json": "997de71e7bb835c3f2973c4848f7b6261967b195b40f742785f8a5785bd476d8",
+    "data/etn/worldgen/density_function/excessive_biomes/continents1.json": "bbaace0217431ff2b39dfc2ccee8d416040b8f8638d686da0f066e587a4f7b21",
+    "data/etn/worldgen/density_function/excessive_biomes/erosion1.json": "2490a238f71622fe570520eea9c4ab7bf1a270db235512ea0c6fc2fa5f3f8062",
+    "data/etn/worldgen/density_function/excessive_biomes/temperature1.json": "47e2d7ce3d438a25c8a7083816ba084f44b1ed3eb3989a1bdaa2faf5e1b80609",
+    "data/etn/worldgen/density_function/excessive_biomes/vegetation.json": "40cfe0fc9fcf0c5a440864ac2f213d7cace3ebcb67bb34ebf3102cb8181200d2",
+    "data/etn/worldgen/density_function/overworld/caves/a/1.json": "6f699b01fb59a682ae8932a46384fe1290d97f62ce19d2460e08e66846362977",
+    "data/etn/worldgen/density_function/overworld/caves/a/2.json": "36590b473d850c1b2433d82fb8aa074af6e5880620da9163721def25bc5d343a",
+    "data/etn/worldgen/density_function/overworld/caves/a/a.json": "97f20e9343cd9fd9d36b53a87a39628fea6fc4745b4b495470859faaea6978b8",
+    "data/etn/worldgen/density_function/overworld/caves/a/b.json": "51d65b8bd3566aea5434fbfe64559facf6b454af7edd39578f612d6b7a99acc4",
+    "data/etn/worldgen/density_function/overworld/caves/a/c.json": "ac117df5d6da73df1045c16aef4f5e930d0e4eab77b90e974a470a97c2461dcf",
+    "data/etn/worldgen/density_function/overworld/caves/b/1.json": "bc1c2c47c8dbf17aa95ceb435279ab167fc3e9a54f0a5e2c5f25adfbc6ef8d60",
+    "data/etn/worldgen/density_function/overworld/caves/b/b.json": "7d63984fe090ad5b23c92b7fc2c2ae6427b7f818fbaf062e9be44f39034ad1b2",
+    "data/etn/worldgen/density_function/overworld/caves/magma_caves.json": "a0c544518cf9cbb6671a821efc973914ccd9ae06d7846a18764ff76c71ef6488",
+    "data/etn/worldgen/density_function/overworld/caves/noodle1.json": "673adbd8dbc992232307c92bd035e57f38c488936079108855dc289210bb5e94",
+    "data/etn/worldgen/density_function/overworld/continents/1.json": "4d149a03346e37491e60b1f39210acedecec8b484ef6d1c0e13b7d65ea98dbe9",
+    "data/etn/worldgen/density_function/overworld/continents/c.json": "4a8ede4c98098e3111de52e03747796015c069e957b98d096698726e765d44d5",
+    "data/etn/worldgen/density_function/overworld/continents/c1.json": "1e7f9c0f4d53108e108fd45f98c87e289a831f956dfef22fc0b28740f8f33d87",
+    "data/etn/worldgen/density_function/overworld/continents/c2.json": "a213a0c1ce3945dfada2ae0305a96c4f3f36a03a0f23aec75bcab4327a9db85a",
+    "data/etn/worldgen/density_function/overworld/depth.json": "b99e4b1a3902fc847f580bba8acd4071e0efcd4792506a60945ee16e5c84ed82",
+    "data/etn/worldgen/density_function/overworld/erosion/a/1.json": "1963e12a20a309399b46a6a76e1e253b9acfb09f67c7b17426aa9eef53226ae4",
+    "data/etn/worldgen/density_function/overworld/erosion/a/2.json": "6881a943bf44f5a25c58ec92aa1281acd49baab584fd0d9c26aa883d73ca9e66",
+    "data/etn/worldgen/density_function/overworld/erosion/a/a.json": "d385597c2fc20789e41560d44bae04597344b6991bbc8965295dc3bdf3bddf4a",
+    "data/etn/worldgen/density_function/overworld/erosion/b/1.json": "74f04efdf8cb1d36e27cb37ef4c80240b8161f4685986278d0902a9a4a91b404",
+    "data/etn/worldgen/density_function/overworld/erosion/b/b.json": "e177cbe8ec3fd66653640e9c0f024451d333868ff570ac88aefb87b99c49b891",
+    "data/etn/worldgen/density_function/overworld/erosion/c/1.json": "128865c5133bee0799c5445421f61e239748e0cc451abdb81392e05c93e7b6ed",
+    "data/etn/worldgen/density_function/overworld/erosion/c/c.json": "c027302cf12d39670fb4683ffee68f68daad4622f37b0581dcbb24ddd3274e98",
+    "data/etn/worldgen/density_function/overworld/erosion/d/1.json": "42e8dae3325ab7d569e4939751c5239d310bc1e1c62ee19111386b19788d2697",
+    "data/etn/worldgen/density_function/overworld/erosion/d/d.json": "590ce92b89165c7fb25534b727a96b89829f0d3073d5aebb5733ace67197fc32",
+    "data/etn/worldgen/density_function/overworld/erosion/e/1.json": "cd6228df7b8e92065068bf1a5110423b950f0399ec043a19db8538d3a61eff62",
+    "data/etn/worldgen/density_function/overworld/erosion/e/e.json": "b45f85e6417824608049aaf9f0ed23a780a679e89da77e2cf2c2007727f558db",
+    "data/etn/worldgen/density_function/overworld/erosion/e.json": "067e099666fb70f8779d263f4faab8e24d974c0173ab122205cb4a97198552b4",
+    "data/etn/worldgen/density_function/overworld/erosion/e12.json": "ba1393af960c0a51d3a300b4e1bccab2d2ef085738181d493e7d26983e6a2973",
+    "data/etn/worldgen/density_function/overworld/erosion/m/1.json": "71ff13a15d973a19c082ec28e4a24f48127dcbb5d8f88c5e7d93a1b0fa29471a",
+    "data/etn/worldgen/density_function/overworld/erosion/m/m.json": "0e43737300e69db3bbe722500a468bc060bca377f24ee56975eeb6ab0391a80f",
+    "data/etn/worldgen/density_function/overworld/ridge/1.json": "27eac6afc270faaf50b4297616d8625fec0b4eec11b2a177cb2e270eca36d0b4",
+    "data/etn/worldgen/density_function/overworld/ridge/2.json": "9b8b741e9d8a2549f81c78fc4369b184d123294181b3c5ecc342df1133eed651",
+    "data/etn/worldgen/density_function/overworld/ridge/r.json": "6c1ae9dafcd5960e001038006c517958f9604d80eb725dcd917cba6e7cbe9a65",
+    "data/etn/worldgen/density_function/overworld/ridge/r1.json": "0c8e44d70f516654f76fbd62495051024770e1e2874435ed0651e080d23f25b2",
+    "data/etn/worldgen/feature/lake_water.json": "4b730968bae163b826739278c901e36f309000a8e679c79d48d63d659c77ee0f",
+    "data/etn/worldgen/noise/c/1.json": "03821e43db224089176032c04fd329ac44e3822a67d61193ba4bb1f204ffbd88",
+    "data/etn/worldgen/noise/c/2.json": "bfc02cac9ff3f8c60b3137e48cb080338c7dba8db79a066b5b810a9e36179081",
+    "data/etn/worldgen/noise/continentalness.json": "4e66515326b2d82dd069ea1e7041a6f9dab80463afe55c58530b1dcb825b8090",
+    "data/etn/worldgen/noise/continentalness1.json": "2feedd9cad7136726993428d34968cc5557aa59a80fa84c24361f87aad411643",
+    "data/etn/worldgen/noise/e/a/1.json": "0124aaa4d96d537a0d946907f187b3073b17cbd48502c771827b6d6e4a33cccb",
+    "data/etn/worldgen/noise/e/a/2.json": "58bccaeefa560221f9e5721fe4446ad834762ce36d0c278e846021bf21323b9f",
+    "data/etn/worldgen/noise/e/b/1.json": "6116021f0f16c56741dc38fdcf389cdf78b2cde2cf2ab4575e823302ba0b1fcd",
+    "data/etn/worldgen/noise/e/b/2.json": "6116021f0f16c56741dc38fdcf389cdf78b2cde2cf2ab4575e823302ba0b1fcd",
+    "data/etn/worldgen/noise/e/c/1.json": "aefa66fa2f68af0d4c91b67b75a71a72e978f7400984d683fe07cbffbda9d2d5",
+    "data/etn/worldgen/noise/e/c/2.json": "738e40599a9ec4e8a21be31d36d8e3d8d7eb7e9a95ffb8c681b99c4713710433",
+    "data/etn/worldgen/noise/e/d/1.json": "738e40599a9ec4e8a21be31d36d8e3d8d7eb7e9a95ffb8c681b99c4713710433",
+    "data/etn/worldgen/noise/e/e/1.json": "03821e43db224089176032c04fd329ac44e3822a67d61193ba4bb1f204ffbd88",
+    "data/etn/worldgen/noise/e/m.json": "0124aaa4d96d537a0d946907f187b3073b17cbd48502c771827b6d6e4a33cccb",
+    "data/etn/worldgen/noise/h/1.json": "03821e43db224089176032c04fd329ac44e3822a67d61193ba4bb1f204ffbd88",
+    "data/etn/worldgen/noise/h/2.json": "bfc02cac9ff3f8c60b3137e48cb080338c7dba8db79a066b5b810a9e36179081",
+    "data/etn/worldgen/noise/h/3.json": "e7c8a7d32eb3c04c57b01acc19ee9dad5214caabae110a3f26b41ac820620b3a",
+    "data/etn/worldgen/noise/r/1.json": "d1254285d442f58c4d54bef877b3c7fc21c9a5be92f0863334300ad5d06cbfd6",
+    "data/etn/worldgen/noise/r/2.json": "cd0434602577c42fdd343063c0c37ef6ad1cf771775b8e8980f3690a6de3b6c6",
+    "data/etn/worldgen/noise/r/3.json": "1a1e2bba434d60dea96899717979c9386ae3ccb61fbe3d98e218987a6e3d258c",
+    "data/etn/worldgen/placed_feature/lake_water_surface.json": "d183b703f2008c460abe51ed66423e7e091aa6cd86e6afc44a629039dc45ea35",
+    "data/minecraft/dimension/overworld.json": "6307a18e1d94c0e9242f3410c34a5b8b831d80f3163f71aab667feda831167c7",
+    "data/minecraft/dimension_type/overworld.json": "e22e39f515ad21a5ae1809346211fc908b7eb8194fc2097c222bff732773b58f",
+    "data/minecraft/worldgen/biome/mangrove_swamp.json": "797efbb45c92dad58f08739aeb9b66ee07ace8e7691daa80335cae0a53a59184",
+    "data/minecraft/worldgen/biome/swamp.json": "247fc2cd9e51cb511a20ca97742427934a670976178ef1e9cfcce965bb0ba6b2",
+    "data/minecraft/worldgen/density_function/overworld/caves/entrances.json": "25ebad95321c70a2b9fbd5c8f0eb0288fcc2ab8917df5f2537e62f083c77873a",
+    "data/minecraft/worldgen/density_function/overworld/caves/entrances1.json": "e61b24af7f880c5938cbcc16981de5832e9ade30e49eb746cbbf9c86e2b0a071",
+    "data/minecraft/worldgen/density_function/overworld/caves/entrances12.json": "6853a582bb5d4fe10bf3fe3f97a1f2ac4447d0bfb13dcd86afdfa2abcf090367",
+    "data/minecraft/worldgen/density_function/overworld/caves/noodle.json": "1ba1f4f37146f4d17b45a5a0e58ead9e44d29f18f7de6bfd866150da2b8a3afe",
+    "data/minecraft/worldgen/density_function/overworld/caves/pillars.json": "46a4556853b7b8c469889931b112d35794d19fe6199b14d404d46babea86c375",
+    "data/minecraft/worldgen/density_function/overworld/continents.json": "55c7113de4af40424ce3a545d7e5737041281e88653948465d8b1b71571a2636",
+    "data/minecraft/worldgen/density_function/overworld/depth.json": "2b8525ce1f1a5bff4e2cdb9f3b5eb5df5b6b2e42c9bdce9f3bd6226852321a21",
+    "data/minecraft/worldgen/density_function/overworld/erosion.json": "488e533ff066288991c9dabf216735665047528cfb84655a00eb1a34056af38c",
+    "data/minecraft/worldgen/density_function/overworld/ridges.json": "708bd263445e7eb6c41fc3c5273faa16d46d21103da71d31112915ec6b7a2251",
+    "data/minecraft/worldgen/density_function/overworld/sloped_cheese.json": "2b8525ce1f1a5bff4e2cdb9f3b5eb5df5b6b2e42c9bdce9f3bd6226852321a21",
+    "data/minecraft/worldgen/density_function/overworld/temperature.json": "01d885728058e1428f8ed761a95ded4a482f5bd116b5feca16b430f72b1ec12e",
+    "data/minecraft/worldgen/density_function/overworld/upgraded/preliminary_surface_level.json": "51ff0d2f0d3a5d61edec31785532ea0d570f8c348d58b15b94ff9c2ca6e926a4",
+    "data/minecraft/worldgen/density_function/overworld/upgraded/vein_gap.json": "f96ccfac8fd71da00a63e29cc4c2c76a484e54ab05decc84255d0be75703022c",
+    "data/minecraft/worldgen/density_function/overworld/upgraded/vein_ridged.json": "d5a994bd902909dee6dda78f3b42ec2836de1bba3065fc8c7df734987a3bf5fb",
+    "data/minecraft/worldgen/density_function/overworld/upgraded/vein_toggle.json": "c6a3149d26fb21ea2b918406635c4c8048d86fba30a29dc2fb4b4a8d360a4c93",
+    "data/minecraft/worldgen/density_function/overworld/vegetation.json": "a908baab1590662c4800d388a5de212d445d332069103ce5142ac44a324f4597",
+    "data/minecraft/worldgen/density_function/overworld.json": "00da37401bc219e0c182b20ee42fecd5f2955d1455ec0f7f288c71cd8ae06bbb",
+    "data/minecraft/worldgen/material_rule/overworld/upgraded/material_rule.json": "883d79f7171e5f9251ed4cfd046ee67bb326ef9e21e2dfba697d70b31b1cee95",
+    "data/minecraft/worldgen/noise/erosion1.json": "9c922816053f740f75131a32f00cd03ff0058f41cdab7daf98880232a4331df6",
+    "data/minecraft/worldgen/noise/offset.json": "30a602dfd0974b2c46e0eac33934b0b2c5de919e5c61aba4a14a6c8e98ee84e0",
+    "data/minecraft/worldgen/noise/temperature.json": "58bccaeefa560221f9e5721fe4446ad834762ce36d0c278e846021bf21323b9f",
+    "data/minecraft/worldgen/noise/temperature1.json": "7cd52777b7f0f6bb0982a1c4b0e3a26fb87a511abfc05700c7c0bd3fd748068d",
+    "data/minecraft/worldgen/noise/vegetation.json": "58bccaeefa560221f9e5721fe4446ad834762ce36d0c278e846021bf21323b9f",
+    "data/minecraft/worldgen/noise/vegetation1.json": "7cd52777b7f0f6bb0982a1c4b0e3a26fb87a511abfc05700c7c0bd3fd748068d",
+    "data/minecraft/worldgen/noise_settings/overworld.json": "99eb51ff04e29be5ba6fd3265f0f164523adff375977bd88f814eb1643378478"
+  }
+}

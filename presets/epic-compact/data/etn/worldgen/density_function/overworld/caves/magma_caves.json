@@ -1,0 +1,40 @@
+{
+  "input": {
+    "left": {
+      "left": {
+        "input": {
+          "noise": "etn:e/c/1",
+          "type": "minecraft:noise",
+          "xz_scale": 0.6,
+          "y_scale": 1
+        },
+        "type": "minecraft:abs"
+      },
+      "right": 1,
+      "type": "minecraft:mul"
+    },
+    "right": {
+      "left": {
+        "axis": "y",
+        "from_coordinate": -27,
+        "from_value": -1,
+        "to_coordinate": 48,
+        "to_value": 1,
+        "type": "minecraft:gradient"
+      },
+      "right": {
+        "axis": "y",
+        "from_coordinate": 128,
+        "from_value": -1,
+        "to_coordinate": -62,
+        "to_value": 1,
+        "type": "minecraft:gradient"
+      },
+      "type": "minecraft:add"
+    },
+    "type": "minecraft:add"
+  },
+  "max": 1,
+  "min": -1,
+  "type": "minecraft:clamp"
+}

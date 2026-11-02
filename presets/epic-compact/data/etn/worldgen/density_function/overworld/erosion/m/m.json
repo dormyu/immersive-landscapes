@@ -1,0 +1,11 @@
+{
+  "left": {
+    "input": {
+      "input": "etn:overworld/erosion/m/1",
+      "type": "minecraft:abs"
+    },
+    "type": "minecraft:half_negative"
+  },
+  "right": -1,
+  "type": "minecraft:mul"
+}

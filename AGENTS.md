@@ -5,6 +5,12 @@
 - Scope is ONLY world generation: realistic mountains, connected rivers/waterbodies,
   seamless biome transitions, and matching DH terrain with low overhead. Do not add
   survival systems, progression, classes or a DormCore framework to acceptance.
+- Latest user feedback rejects v3 entirely: one biome, bare terrain, isolated
+  oversized peaks and broken far chunks. Keep Minecraft's gameplay scale and
+  varied fantasy-friendly geography. Epic Terrain's existing world was judged
+  promising, but its biome regions are too large. Reuse the complete native
+  generation recipe with proper credit; do not rebuild another simplified
+  height-only approximation or scale mountain relief fourfold.
 - The old G0-G7 / up-to-100-hour plan was rejected as over-scoped. Use the replacement
   G0-G3 plan; prioritize existing engine APIs and selective reuse of reference code.
 - Start with `docs/next-agent.md`, then `docs/implementation-plan.ru.md`. Resume the

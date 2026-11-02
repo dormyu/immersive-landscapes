@@ -2,6 +2,12 @@
 
 ## Result
 
+After the user's v3 rejection, `0.2.0-dev.1` directly uses the complete converted
+Epic recipe through Horizon's native generator. The preset reduces climate
+wavelength without amplifying mountains. This replaces the height-only hybrid;
+its visual and near/far results still require actual game checks. See
+[preset provenance](../presets/epic-compact/IL-PRESET.json).
+
 Epic Terrain is a useful source of actual generation recipes. Its MIT JSON data
 can run through Horizon's native Rust world generator after a narrow conversion.
 This is more concrete than recreating a promotional image or adjusting the
