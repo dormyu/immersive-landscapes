@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
 
-pub(super) const VERSION: &str = "0.3.0-dev.1";
+pub(super) const VERSION: &str = "0.3.0-dev.2";
 pub(super) const ID: &str = "immersive_landscapes";
 const MARKER: &str = "immersive-landscapes.json";
 const PACK: &str = "immersive-landscapes";

@@ -84,7 +84,7 @@ def main():
         "pack_format": 121, "min_format": 121, "max_format": 121}}, indent=2) + "\n", encoding="utf-8", newline="\n")
     metadata = {
         "schema": 1, "preset": "vanilla-natural-v1", "author": "dormyu",
-        "based_on": "Horizon c9d474d native vanilla generator; original density overlay by dormyu",
+        "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
         "generation_family": "vanilla-natural", "descriptor_version": 5,
         "vanilla_aliases": {"immersive_landscapes:vanilla_offset": "minecraft:overworld/offset"},
         "preserves": ["vanilla continents and climate scale", "vanilla height limits and sea level",

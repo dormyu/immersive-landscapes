@@ -53,7 +53,7 @@ def package():
                  "world_type_ui.rs", "world_type_name.rs", "world_type_button.rs", "world_type_toggle.rs"):
         files["mixins/immersive_landscapes/" + name] = (BUNDLE / name).read_bytes()
     for name in ("LICENSE", "CREDITS.md", "compatibility.json", "docs/native-build.md", "docs/vanilla-natural.md",
-                 "tools/patches/horizon-mixins-boundary-head.patch", "third-party/horizon-mixins-LICENSE"):
+                 "tools/patches/horizon-mixins-f42-compat.patch", "third-party/horizon-mixins-LICENSE"):
         files[name] = (ROOT / name).read_bytes()
     for path in sorted(PRESET.rglob("*")):
         if path.is_file():
@@ -78,7 +78,7 @@ def main():
         package()
     else:
         dev = ROOT.parent / "RustCore/development"
-        os.environ["HORIZON_MIXINS_BIN"] = str(dev / "mixins-tool/bin/horizon-mixins.exe")
+        os.environ.setdefault("HORIZON_MIXINS_BIN", str(dev / "mixins-tool-f42/bin/horizon-mixins.exe"))
         if args.action == "build":
             command = [sys.executable, "-X", "utf8", str(dev / "scripts/Run-GuardedBuild.py"), "--with", str(BUNDLE)]
         else:

@@ -1,10 +1,10 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.3.0-dev.1"
+version = "0.3.0-dev.2"
 priority = 110
 
 [compatibility]
-horizon_revision = "c9d474dd9116e84c243f8992d75c11314df56f06"
+horizon_revision = "f42ef42ef6ceccb3c6a20bea2481d87949a51c81"
 
 [[module]]
 id = "preset"
@@ -53,7 +53,7 @@ visibility = "pub"
 id = "world_type_name"
 kind = "HEAD"
 cancellable = true
-target = "horizon_client::title::create_world::tr"
+target = "horizon_client_lib::title::create_world::tr"
 helper = "world_type_name.rs"
 bindings = [{ name = "key", ty = "&str", value = "key" }]
 
@@ -61,7 +61,7 @@ bindings = [{ name = "key", ty = "&str", value = "key" }]
 id = "world_type_button"
 kind = "HEAD"
 cancellable = true
-target = "horizon_client::title::create_world::labelled"
+target = "horizon_client_lib::title::create_world::labelled"
 helper = "world_type_button.rs"
 bindings = [
   { name = "key", ty = "&str", value = "key" },

@@ -2,7 +2,7 @@
   "schema": 1,
   "preset": "vanilla-natural-v1",
   "author": "dormyu",
-  "based_on": "Horizon c9d474d native vanilla generator; original density overlay by dormyu",
+  "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
   "generation_family": "vanilla-natural",
   "descriptor_version": 5,
   "vanilla_aliases": {
