@@ -22,7 +22,7 @@ Native Windows executable SHA-256: `610c4105950a6dc362ad0cba482229fbd0baf0c011f3
 ## Same-seed rendering and movement
 
 Windows, i5-9400F / RTX2060 /16GiB. **Offscreen1920×1080**, near16, simulation8,
-maxFps120, VSync off; built-in Horizon LOD off. DH128/medium in its run only.
+maxFps120, VSync off, audio disabled; built-in Horizon LOD off. DH128/medium in its run only.
 Seed -6712665269073713615, fresh independent worlds. Mountain camera
 (-1100,160,550), yaw180/pitch3; 12-second flight to(-800,140,100).
 8-second settled sample. Each launch settled >900 near chunks and zero pending.
@@ -80,8 +80,22 @@ Noise valleys are not a validated watershed/outlet/delta network. Vanilla
 vegetation and biome identities still have discrete boundaries. Visual acceptance,
 heavy-pack performance and final geography for future custom structures remain
 open. Existing user worlds retain their own generator; test this recipe in a new
-world named/type Immersive Landscapes in **DormLab**, not DormLab-EpicReference.
+world of type Immersive Landscapes in **DormLab**, not DormLab-EpicReference.
 
 The first build's UI check found CRLF/LF checksum drift. The preset now enforces
 LF at generation and Git boundaries; native.py validates checksums before
 embedding. The rebuilt candidate passed exact source-to-world comparison.
+
+## Installed Prism readback
+
+The candidate was installed into DormLab with a rollback copy. Prism launched
+its actual native executable (SHA-256 above), control disabled. A fresh QA-world
+outside user saves received descriptor5 / vanilla-natural-v1, loaded304 chunks
+and meshed6443 sections; the native smoke report contained no error. All581
+pre-existing save files matched their SHA-256, and launch/game/DH settings were
+restored exactly. The first600-frame smoke ended before enough chunks arrived;
+the6000-world-frame retry passed. These scripted frames bypass the FPS limiter
+and are a launch check, not performance measurements.
+
+Local Obsidian direction SRC-015/D043 and current implementation, credits,
+structures dependency and guide were updated. Owner acceptance remains pending.
