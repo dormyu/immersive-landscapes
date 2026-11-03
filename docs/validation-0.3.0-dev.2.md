@@ -64,3 +64,13 @@ functionality at near2, not complete remote refinement or server load.
 Local evidence: `RustCore/qa/dh-lifecycle-2026-11-03/reports`. The installed build
 and Prism readback are recorded separately in DormLab's `native-build.json`;
 source checks and offscreen diagnostics alone do not establish delivery.
+
+## Installed laboratory readback
+
+The final executable was installed into the independent DormLab instance and
+launched through Prism/bridge with control disabled. The actual installed native
+path and descriptor5 were observed; all581 owner save files and settings matched.
+Rollback and exact source/bundle hashes are recorded in the private build manifest.
+A native-only32/full-detail image run with resident far quads0 also confirms
+genuine gray stone outcrops/cliffs in the actual terrain; not every gray face can
+be attributed to distant rendering.
