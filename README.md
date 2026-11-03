@@ -4,9 +4,10 @@ Familiar Minecraft terrain with more coherent mountain regions and graded river
 valleys. A native mod for the **Horizon Rust client and Rust dedicated server**,
 by **dormyu**.
 
-> `0.3.0-dev.2` is a development candidate. Visual quality, distant rendering and
-> smooth gameplay require in-game verification and owner feedback. The earlier
-> v4 acceptance claim was incorrect; see [the correction](docs/feedback-correction.md).
+> **Working version · active development.** `0.3.0-dev.2` generates playable worlds
+> through the normal **Immersive Landscapes** world type. World creation,
+> save/reopen, two Rust clients and the installed Prism build have been tested.
+> Known distant-rendering issues and unfinished generation features are listed below.
 
 ## What changes
 
@@ -28,7 +29,7 @@ Noise valleys are **not** a physically simulated drainage network or validated
 river deltas. Vanilla biome identities and vegetation boundaries remain discrete.
 These are open development areas, not completed features.
 
-![Actual candidate with Distant Horizons](docs/images/vanilla-natural-v2.png)
+![Immersive Landscapes world with Distant Horizons](docs/images/vanilla-natural-v2.png)
 
 ## Create a world
 
@@ -49,15 +50,26 @@ recipe. Archived v1–v3 prototypes require their pinned experimental build.
 The integration targets Horizon Nightly `f42ef42` / Minecraft 26.3. A `.hnmod`
 must be compiled into Horizon; copying the bundle beside an executable does not
 activate it. See [native build notes](docs/native-build.md), the
-[current handoff](docs/next-agent.md), [candidate details](docs/vanilla-natural.md)
+[current handoff](docs/next-agent.md), [generation details](docs/vanilla-natural.md)
 and [measured checks](docs/validation-0.3.0-dev.2.md).
 
 Terrain changes run during generation; this mod adds no gameplay-frame callback.
 Distant rendering is supplied separately by the pack's adaptation of
 [Distant Horizons for Horizon Client](https://github.com/denizsahin7744/distant-horizons-for-horizon-client).
-Actual near chunks and DH distance are separate settings. The target remains
-32 near chunks at 120 FPS with headroom for a heavy pack; this is not a promise
-or a result established by short generation probes.
+Actual near chunks and DH distance are separate settings. A short warmed-world
+test at 1080p, 32 near chunks and DH128 Medium measured 120 FPS stationary and
+119.6 FPS in flight, with a maximum flight frame of16.8ms (offscreen, VSync/audio
+off). Long exploration and headroom for a heavy pack still need verification.
+
+## Known issues and ongoing work
+
+- The combined build still has visible near/far water boundaries. Floating distant
+  terrain has also been reported and is being compared against full-detail chunks.
+- Connected catchments, validated river outlets/deltas and gradual vegetation
+  transitions are unfinished. The working terrain overlay does not implement
+  those systems yet.
+- Existing worlds retain their saved recipe. Future generation changes will need
+  explicit versioning; they must not silently reshape explored worlds.
 
 [Preset metadata](presets/vanilla-natural/IL-PRESET.json) records changes and
 checksums. Optional external tuning is copied only into new worlds. The standalone
