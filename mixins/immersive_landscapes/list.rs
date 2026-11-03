@@ -6,7 +6,7 @@ fn immersive_landscapes_list(
     mods.push(crate::game::native_hooks::NativeMod {
         id: "immersive_landscapes".into(),
         title: format!("Immersive Landscapes {}", crate::game::immersive_landscapes::VERSION),
-        description: "Minecraft-scale landscapes with varied biomes and full native decoration. Select Immersive Landscapes when creating a world. Integration and tuning by dormyu; terrain based on Epic Terrain by wonderfulaichen (MIT).".into(),
+        description: "Vanilla Minecraft terrain with coherent mountain regions and graded river valleys. Vanilla biomes, vegetation, caves and structures. Select Immersive Landscapes when creating a world. Original terrain overlay and integration by dormyu.".into(),
         keys: Vec::new(),
     });
 }

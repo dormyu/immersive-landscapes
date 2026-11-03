@@ -33,34 +33,43 @@ The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
 documented patched tool / combined build or the tested prebuilt DormLab executable.
 Game resources, accounts and worlds are never part of this source package.
 
-## Current generation path (0.2.0-dev.2)
+## Current generation path (0.3.0-dev.1)
 
 `preset.generated.rs`, `preset_adapter.rs`, `prepare.rs` and `list.rs` implement
 the generation path. The rejected custom ChunkGenerator/LevelShape
-hooks have been removed. `tools/native.py generate` embeds the complete
-`presets/epic-compact` directory, including its upstream license and provenance.
-Registry checksums in `IL-PRESET.json` cover the vendored source-file bytes.
-Git preserves those bytes; embedding text normalizes line endings to LF before
-the native loader writes the world's copy, without changing registry values.
+hooks have been removed. `tools/prepare_vanilla_natural.py` generates the six
+original density overrides in `presets/vanilla-natural`; `tools/native.py generate`
+validates their SHA-256 and embeds that directory. The source and world copies
+use identical LF bytes. Git's scoped EOL rule and the embedding tool reject
+newline drift instead of publishing mismatched checksums.
+
+The original vanilla offset is read from the owner's prepared resources at new
+world creation and saved under a private alias in that world's data pack. It is
+not included in the mod source or bundle. Climate, biome, decoration, cave, ore,
+structure and dimension definitions are not replaced. See
+[the generation design](vanilla-natural.md) for the scope and remaining limits.
 
 The cancellable HEAD on `WorldRequest::prepare_world` installs that data pack
 before the normal engine loads it. Dedicated servers call the same method, so
 their new normal worlds receive the same generation recipe. Existing vanilla
-worlds are skipped; descriptor4 worlds retain their own saved recipe. Older
+worlds are skipped; descriptor4 and descriptor5 worlds retain their own saved recipe. Older
 prototype descriptors are refused rather than silently changing their terrain.
 
 External presets under `<game>/horizon-mods/immersive-landscapes-preset` are
-copied only into new worlds. They must contain `pack.mcmeta`; symbolic links
-are refused. Such presets are an explicit development override, not a claim
+copied only into new worlds. They must contain `pack.mcmeta` and `IL-PRESET.json`
+with schema1, descriptor_version5, preset, author, based_on and optional
+vanilla_aliases. The marker uses that actual identity. Symbolic links are
+refused. Such presets are an explicit development override, not a claim
 that arbitrary Java data packs are compatible.
 
 ## Named creation-screen type
 
 The enabled mod owns the normal-world generation slot, whose creation-screen
 name is now **Immersive Landscapes**. This is the existing candidate recipe under an
-accurate display name; it is not a second generator or a save-format migration.
-The persisted Horizon identity remains `minecraft:normal`, descriptor4 and the
-world-local data pack. Flat, large-biome and other slots keep their own behavior.
+accurate display name. The persisted Horizon identity remains `minecraft:normal`,
+with descriptor5 and the world-local data pack for new worlds. Old v4 worlds keep
+their Epic recipe; this update does not migrate them. Flat, large-biome and other
+slots keep their own behavior.
 
 `world_type_ui.rs` keeps a presentation flag, synchronized at native-mod discovery
 and whenever mod settings are saved. `world_type_name.rs` updates only the

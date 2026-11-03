@@ -5,12 +5,12 @@
 - Scope is ONLY world generation: realistic mountains, connected rivers/waterbodies,
   seamless biome transitions, and matching DH terrain with low overhead. Do not add
   survival systems, progression, classes or a DormCore framework to acceptance.
-- Feedback rejected v3 entirely: one biome, bare terrain, isolated
-  oversized peaks and broken far chunks. Keep Minecraft's gameplay scale and
-  varied fantasy-friendly geography. Epic Terrain's existing world was judged
-  promising, but its biome regions are too large. Reuse the complete native
-  generation recipe with proper credit; do not rebuild another simplified
-  height-only approximation or scale mountain relief fourfold.
+- Latest direction (2026-11-03): ordinary Minecraft landscapes following natural
+  rules. Use the native vanilla generator as the foundation; preserve its scale,
+  climate, decoration and varied biomes. The new vanilla-natural-v1 overlay
+  changes shared ridge/erosion/valley fields, not the entire recipe. Epic remains
+  a historical reference and a saved v4-world recipe, not the new-world default.
+  Do not return to bare height-only prototypes or fourfold mountain amplification.
 - The previous v4 owner-acceptance claim was WRONG: the positive feedback was
   from DormLab-EpicReference with IL and DH disabled, not the installed DormLab.
   The owner identified the liked result as ordinary generation on 2026-11-03.

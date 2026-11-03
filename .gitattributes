@@ -2,3 +2,7 @@
 *.png binary
 presets/epic-compact/** -text
 tools/patches/*.patch whitespace=-blank-at-eol
+
+# Rust string literals normalize newlines. Keep the source recipe and hashes
+# identical to the actual bytes embedded in the native world-creation module.
+/presets/vanilla-natural/** text eol=lf

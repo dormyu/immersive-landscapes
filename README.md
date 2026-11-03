@@ -1,68 +1,68 @@
 # Immersive Landscapes
 
-Minecraft landscapes with mountain ranges, rivers and varied biomes at a scale
-suited to exploration and a fantasy survival pack. By **dormyu**.
+Familiar Minecraft terrain with more coherent mountain regions and graded river
+valleys. A native mod for the **Horizon Rust client and Rust dedicated server**,
+by **dormyu**.
 
-This is a native mod for the **Horizon Rust client and Rust dedicated server**.
-The current version uses Epic Terrain's complete MIT generation recipes,
-adapted to Horizon and tuned for smaller climate regions. Original authorship
-and every data change are recorded in [CREDITS](CREDITS.md).
+> `0.3.0-dev.1` is a development candidate. Visual quality, distant rendering and
+> smooth gameplay require in-game verification and owner feedback. The earlier
+> v4 acceptance claim was incorrect; see [the correction](docs/feedback-correction.md).
 
-> Development build; terrain quality and Distant Horizons loading are not
-> accepted. The earlier acceptance statement mistakenly attributed feedback
-> from another launcher instance to this mod. See the
-> [3 November correction](docs/feedback-correction.md). Version `0.2.0-dev.2`
-> adds the **Immersive Landscapes** world-type label without changing terrain.
+## What changes
 
-![Native Horizon screenshot: mountain range, forests and water](docs/images/immersive-v4-native.png)
+The new `vanilla-natural-v1` overlay keeps the normal generator's continents,
+climate scale, height limits, biomes, trees, plants, caves, ores and structures.
+Six density functions adjust shared terrain fields:
 
-Actual native-game capture, seed8675309, near16 and Distant Horizons128 medium.
+- A broader component connects mountain regions while retaining local variation.
+- Eroded lowlands have wider valley profiles; mountain passes stay narrower.
+- Inland river floors are protected against excessively deep slots, fading out
+  before ocean terrain. The original coast and ocean recipe remain the foundation.
+- Terrain shape and biome selection use the same ridge/erosion fields.
 
-## How it works
+This is a small overlay on vanilla generation. It replaces the earlier full
+Epic Terrain preset for **new worlds**. Existing v4 worlds keep their own
+Epic-derived recipe; they are not converted to the new landscape.
 
-Create a world with type **Immersive Landscapes**, choose a seed, and play.
-It is selected initially while the mod is enabled. The mod installs its generation
-recipe before Horizon loads the world's dimensions and biome registries.
-There is no prepared world to copy and no manual data-pack selection.
+Noise valleys are **not** a physically simulated drainage network or validated
+river deltas. Vanilla biome identities and vegetation boundaries remain discrete.
+These are open development areas, not completed features.
 
-Horizon generates the complete terrain, caves, ores, biomes, trees, plants and
-structures. The preset keeps Epic Terrain's original mountain and river scale;
-its temperature and moisture wavelengths are four times shorter by default.
-The old fourfold mountain amplification and bounded experimental island are gone.
+![Actual 0.3.0-dev.1 candidate with Distant Horizons](docs/images/vanilla-natural-v1.png)
 
-Existing vanilla worlds retain their generator. Each new IL world keeps its own
-installed recipe, so changing a later pack default does not change that world.
-Archived prototype worlds require their pinned experimental build.
+## Create a world
 
-Distant rendering is provided separately by the modpack's adaptation of
+Run a Horizon build compiled with this mod, keep it enabled, and choose world
+type **Immersive Landscapes**. Enter any seed and create the world normally.
+There is no prepared save or manual data-pack selection. New worlds receive a
+descriptor identifying `vanilla-natural-v1` and their own recipe.
+
+The local project laboratory is **DormLab**. **DormLab-EpicReference** is a
+different comparison instance with IL disabled; ordinary new worlds there use
+vanilla generation. Its prepared Epic world does not change other worlds.
+
+Old vanilla worlds retain their generator. IL v4 and v5 worlds retain their saved
+recipe. Archived v1–v3 prototypes require their pinned experimental build.
+
+## Build and performance
+
+The integration targets Horizon Nightly `c9d474d` / Minecraft 26.3. A `.hnmod`
+must be compiled into Horizon; copying the bundle beside an executable does not
+activate it. See [native build notes](docs/native-build.md), the
+[current handoff](docs/next-agent.md) and [candidate details](docs/vanilla-natural.md) and [measured checks](docs/validation-0.3.0-dev.1.md).
+
+Terrain changes run during generation; this mod adds no gameplay-frame callback.
+Distant rendering is supplied separately by the pack's adaptation of
 [Distant Horizons for Horizon Client](https://github.com/denizsahin7744/distant-horizons-for-horizon-client).
-Near distance and distant LOD distance are separate settings. The aspiration is
-32 actual near chunks at 120 FPS, with far terrain and room for a heavy pack;
-this target and owner acceptance remain open. Future modpack structures and
-their placement will be built for the eventually approved geography; the current
-preset is not an approved foundation and that overhaul is not implemented.
+Actual near chunks and DH distance are separate settings. The target remains
+32 near chunks at 120 FPS with headroom for a heavy pack; this is not a promise
+or a result established by short generation probes.
 
-## Build and tuning
+[Preset metadata](presets/vanilla-natural/IL-PRESET.json) records changes and
+checksums. Optional external tuning is copied only into new worlds. The standalone
+drainage library in `src/` remains research and does not drive the current game.
 
-The native integration targets Horizon Nightly `c9d474d` / Minecraft 26.3.
-See [native build notes](docs/native-build.md). A `.hnmod` must be compiled into
-Horizon; copying a source bundle beside the executable does not activate it.
-
-[The preset](presets/epic-compact/IL-PRESET.json) records its source and tuning.
-An optional `<game>/horizon-mods/immersive-landscapes-preset` directory can supply
-an external preset for newly created worlds without recompilation. Existing
-worlds keep their saved data pack.
-
-The standalone Rust drainage library and map tools under `src/` and `tools/`
-remain research code. They do not replace the current native generation pipeline.
-See [current handoff](docs/next-agent.md) and [reference findings](docs/reference-findings.md).
-
-[Measured validation and known limits](docs/validation-0.2.0-dev.1.md) distinguish
-actual native-game checks from the standalone research-library tests.
-[Named-world UI and save compatibility checks](docs/validation-0.2.0-dev.2.md)
-cover the current update.
-
-Own code is [MIT](LICENSE). Epic Terrain's data retains its own MIT notice;
-Distant Horizons remains a separate LGPL project. No game assets, prepared
-resources, accounts or worlds are distributed here. Minecraft belongs to
+Own code is [MIT](LICENSE). Historical Epic Terrain data retains wonderfulaichen's
+MIT notice; DH is a separate LGPL project. See [CREDITS](CREDITS.md). No game assets,
+prepared resources, accounts or saves are distributed. Minecraft belongs to
 Mojang/Microsoft; this project is independent and not endorsed by them.

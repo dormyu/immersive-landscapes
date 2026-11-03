@@ -13,16 +13,24 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = ROOT / "mixins/immersive_landscapes"
 VERSION = tomllib.loads((ROOT / "Cargo.toml").read_text())["package"]["version"]
+PRESET = ROOT / "presets/vanilla-natural"
 
 
 def generate():
-    preset = ROOT / "presets/epic-compact"
-    parts = ["// Generated native preset. Epic Terrain: wonderfulaichen, MIT. Tuning/integration: dormyu.\n",
+    preset = PRESET
+    metadata = json.loads((preset / "IL-PRESET.json").read_text(encoding="utf-8"))
+    actual = {p.relative_to(preset).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+              for p in sorted((preset / "data").rglob("*.json"))}
+    if actual != metadata["registry_sha256"]:
+        raise ValueError("Preset registry checksums do not match the files being embedded")
+    parts = ["// Generated native vanilla-based terrain overlay. MIT, dormyu.\n",
              "pub const FILES: &[(&str, &str)] = &[\n"]
     for path in sorted(preset.rglob("*")):
         if path.is_file():
             name = path.relative_to(preset).as_posix()
-            value = path.read_text(encoding="utf-8")
+            value = path.read_bytes().decode("utf-8")
+            if "\r" in value:
+                raise ValueError(f"Preset must use LF newlines for byte-identical Rust embedding: {name}")
             if '"#####' in value:
                 raise ValueError("Unexpected preset raw string delimiter")
             parts.append(f'({json.dumps(name)}, r#####"{value}"#####),\n')
@@ -44,10 +52,10 @@ def package():
     for name in ("horizon-mixin.toml", "preset.generated.rs", "preset_adapter.rs", "prepare.rs", "list.rs",
                  "world_type_ui.rs", "world_type_name.rs", "world_type_button.rs", "world_type_toggle.rs"):
         files["mixins/immersive_landscapes/" + name] = (BUNDLE / name).read_bytes()
-    for name in ("LICENSE", "CREDITS.md", "compatibility.json", "docs/native-build.md",
+    for name in ("LICENSE", "CREDITS.md", "compatibility.json", "docs/native-build.md", "docs/vanilla-natural.md",
                  "tools/patches/horizon-mixins-boundary-head.patch", "third-party/horizon-mixins-LICENSE"):
         files[name] = (ROOT / name).read_bytes()
-    for path in sorted((ROOT / "presets/epic-compact").rglob("*")):
+    for path in sorted(PRESET.rglob("*")):
         if path.is_file():
             files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
     with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as archive:

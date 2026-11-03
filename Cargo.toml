@@ -1,10 +1,10 @@
 [package]
 name = "immersive-landscapes"
-version = "0.2.0-dev.2"
+version = "0.3.0-dev.1"
 edition = "2024"
 rust-version = "1.85"
 authors = ["dormyu"]
-description = "Large landscapes and connected watersheds for Horizon/Rust Minecraft."
+description = "Vanilla-scale landscapes with coherent ranges and graded valleys for Horizon/Rust Minecraft."
 license = "MIT"
 repository = "https://github.com/dormyu/immersive-landscapes"
 readme = "README.md"

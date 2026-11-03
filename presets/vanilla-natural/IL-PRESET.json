@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "preset": "vanilla-natural-v1",
+  "author": "dormyu",
+  "based_on": "Horizon c9d474d native vanilla generator; original density overlay by dormyu",
+  "generation_family": "vanilla-natural",
+  "descriptor_version": 5,
+  "vanilla_aliases": {
+    "immersive_landscapes:vanilla_offset": "minecraft:overworld/offset"
+  },
+  "preserves": [
+    "vanilla continents and climate scale",
+    "vanilla height limits and sea level",
+    "biomes and surface rules",
+    "trees and vegetation",
+    "caves and ores",
+    "structures",
+    "Nether and End"
+  ],
+  "changes": [
+    "coherent low-frequency component in the shared mountain/river field",
+    "gentler erosion-field variation across mountain regions",
+    "wider valley profiles in eroded lowlands, narrower mountain passes",
+    "inland river-floor protection, fading out before ocean terrain",
+    "terrain and biome placement consume the same fields"
+  ],
+  "known_limits": [
+    "Noise valleys are not a simulated drainage graph or validated deltas",
+    "Vanilla biome identity and vegetation boundaries remain discrete",
+    "Native near/far surface sampling differences still require checking"
+  ],
+  "registry_sha256": {
+    "data/immersive_landscapes/worldgen/density_function/range_field.json": "c8c1bacc310e6789bffd97ce67982fc8805ea47e08347630ed825ae74d4d94a3",
+    "data/immersive_landscapes/worldgen/density_function/valley_profile.json": "77c467e9bb4ada8e914fee727f8fb6012d3d3a31cbd2e1deb608eff1099efab7",
+    "data/immersive_landscapes/worldgen/density_function/valley_strength.json": "6519ec19b14b5ff5377c587f1c410cc8ffdfcfa84b67128e9d88ef953a218497",
+    "data/minecraft/worldgen/density_function/overworld/erosion.json": "501be0efdc9d84a155c148b5e61396b79b4c8159892de3dd7f00d9a7b73ed078",
+    "data/minecraft/worldgen/density_function/overworld/offset.json": "37623b69e538c13c2507a41f42f1edbddf5ae024d5f3842841469b31347808f1",
+    "data/minecraft/worldgen/density_function/overworld/ridges.json": "6aaa72f51a8c381da670052377f1af59c1009644bc84d98f039ec25d9264be3f"
+  }
+}

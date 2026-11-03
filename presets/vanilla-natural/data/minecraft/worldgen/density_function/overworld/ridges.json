@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:cache",
+  "input": {
+    "type": "minecraft:lerp",
+    "alpha": "immersive_landscapes:valley_strength",
+    "first": "immersive_landscapes:range_field",
+    "second": "immersive_landscapes:valley_profile"
+  }
+}

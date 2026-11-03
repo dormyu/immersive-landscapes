@@ -5,7 +5,7 @@ GitHub account: [dormyu](https://github.com/dormyu).
 
 ## Original implementation
 
-The native world-creation integration, preset tuning/tools, experimental drainage
+The native world-creation integration, vanilla-natural density overlay, preset tuning/tools, experimental drainage
 library, tests and preview tools are original code by dormyu, licensed under MIT.
 The old height-only prototypes were rejected and do not drive the current native
 preset. Priority-flood, drainage graphs,
@@ -31,14 +31,19 @@ does not claim to have invented them.
   converted generation data is included in [presets/epic-compact](presets/epic-compact),
   retaining wonderfulaichen's [MIT notice](presets/epic-compact/LICENSE).
   The original terrain/river scale and complete native decoration are retained;
-  dormyu's preset reduces the climate wavelength and automatically installs the
-  recipe when an Immersive Landscapes world is created. [Exact provenance and tuning](presets/epic-compact/IL-PRESET.json)
+  dormyu's v4 preset reduces the climate wavelength. Since `0.3.0-dev.1`, new
+  worlds instead use the original vanilla-natural overlay; existing v4 worlds
+  keep their saved Epic-derived recipe. [Exact historical provenance and tuning](presets/epic-compact/IL-PRESET.json)
   identify the source revision, conversion changes and every registry checksum.
 - [Tellus](https://github.com/Yucareux/Tellus): real-world elevation, climate,
   vegetation and direct distant-terrain sampling as visual/architectural
   references. No Tellus code is included in this MIT project.
 
-Epic Terrain's data is directly reused as described above. The other terrain
+Epic Terrain's data was directly reused in v4 and remains in its preserved recipe.
+The current vanilla-natural overlay uses the owner's installed Minecraft/Horizon
+registries and our own density functions. Its vanilla offset alias is materialized
+locally when creating a world; game registry files are not redistributed in the
+native bundle. The other terrain
 projects remain references; their Java implementation is not bundled.
 
 ## Separate platform and rendering projects

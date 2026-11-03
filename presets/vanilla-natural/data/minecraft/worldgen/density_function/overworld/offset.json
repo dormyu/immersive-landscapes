@@ -1,0 +1,74 @@
+{
+  "type": "minecraft:cache",
+  "input": {
+    "type": "minecraft:lerp",
+    "alpha": {
+      "type": "minecraft:mul",
+      "left": {
+        "type": "minecraft:spline",
+        "spline": {
+          "coordinate": "minecraft:overworld/continents",
+          "points": [
+            {
+              "location": -1.0,
+              "value": 0.0,
+              "derivative": 0.0
+            },
+            {
+              "location": -0.16,
+              "value": 0.0,
+              "derivative": 0.0
+            },
+            {
+              "location": -0.1,
+              "value": 1.0,
+              "derivative": 0.0
+            },
+            {
+              "location": 1.0,
+              "value": 1.0,
+              "derivative": 0.0
+            }
+          ]
+        }
+      },
+      "right": {
+        "type": "minecraft:spline",
+        "spline": {
+          "coordinate": {
+            "type": "minecraft:abs",
+            "input": "minecraft:overworld/ridges"
+          },
+          "points": [
+            {
+              "location": 0.0,
+              "value": 1.0,
+              "derivative": 0.0
+            },
+            {
+              "location": 0.045,
+              "value": 1.0,
+              "derivative": 0.0
+            },
+            {
+              "location": 0.12,
+              "value": 0.0,
+              "derivative": 0.0
+            },
+            {
+              "location": 1.0,
+              "value": 0.0,
+              "derivative": 0.0
+            }
+          ]
+        }
+      }
+    },
+    "first": "immersive_landscapes:vanilla_offset",
+    "second": {
+      "type": "minecraft:max",
+      "left": "immersive_landscapes:vanilla_offset",
+      "right": -0.54
+    }
+  }
+}

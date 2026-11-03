@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:cache",
+  "input": {
+    "type": "minecraft:spline",
+    "spline": {
+      "coordinate": "minecraft:overworld/erosion",
+      "points": [
+        {
+          "location": -1.0,
+          "value": 0.2,
+          "derivative": 0.0
+        },
+        {
+          "location": -0.4,
+          "value": 0.25,
+          "derivative": 0.0
+        },
+        {
+          "location": 0.0,
+          "value": 0.55,
+          "derivative": 0.0
+        },
+        {
+          "location": 0.5,
+          "value": 1.0,
+          "derivative": 0.0
+        },
+        {
+          "location": 1.0,
+          "value": 1.0,
+          "derivative": 0.0
+        }
+      ]
+    }
+  }
+}

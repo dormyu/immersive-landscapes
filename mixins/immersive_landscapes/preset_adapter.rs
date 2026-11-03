@@ -1,5 +1,6 @@
 // Native world-creation integration, MIT, dormyu.
-// Complete Epic Terrain recipes retain wonderfulaichen's MIT notice.
+// New worlds use our small vanilla-based overlay. Existing v4 Epic-based worlds
+// retain their own recipes and wonderfulaichen's MIT notice.
 use super::immersive_landscapes_preset::FILES;
 use super::{Settings, world_loading::WorldRequest};
 use horizon_client::{
@@ -7,12 +8,14 @@ use horizon_client::{
     save::{WorldGen, WorldPreset},
 };
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::path::Path;
 
-pub(super) const VERSION: &str = "0.2.0-dev.2";
+pub(super) const VERSION: &str = "0.3.0-dev.1";
 pub(super) const ID: &str = "immersive_landscapes";
 const MARKER: &str = "immersive-landscapes.json";
 const PACK: &str = "immersive-landscapes";
+const PRESET_META: &str = "IL-PRESET.json";
 
 #[derive(Serialize, Deserialize)]
 struct Descriptor {
@@ -23,6 +26,77 @@ struct Descriptor {
     author: String,
     #[serde(default)]
     based_on: String,
+}
+
+#[derive(Deserialize)]
+struct PresetIdentity {
+    schema: u32,
+    descriptor_version: u32,
+    preset: String,
+    author: String,
+    based_on: String,
+    #[serde(default)]
+    vanilla_aliases: BTreeMap<String, String>,
+}
+
+fn preset_identity(external: Option<&Path>) -> Result<PresetIdentity> {
+    let text = match external {
+        Some(source) => std::fs::read_to_string(source.join(PRESET_META))?,
+        None => FILES
+            .iter()
+            .find(|(name, _)| *name == PRESET_META)
+            .ok_or("Embedded Immersive Landscapes preset metadata is missing")?
+            .1
+            .to_owned(),
+    };
+    let identity: PresetIdentity = serde_json::from_str(&text)?;
+    if identity.schema != 1
+        || identity.descriptor_version != 5
+        || identity.preset.is_empty()
+        || identity.author.is_empty()
+    {
+        return Err("Unsupported Immersive Landscapes preset metadata".into());
+    }
+    Ok(identity)
+}
+
+fn write_vanilla_aliases(
+    identity: &PresetIdentity,
+    resources: &Path,
+    destination: &Path,
+) -> Result<()> {
+    if identity.vanilla_aliases.is_empty() {
+        return Ok(());
+    }
+    let densities: BTreeMap<String, String> =
+        serde_json::from_slice(&std::fs::read(resources.join("worldgen/densities.json"))?)?;
+    for (alias, original) in &identity.vanilla_aliases {
+        let name = alias
+            .strip_prefix("immersive_landscapes:")
+            .ok_or("Vanilla density alias must be in the immersive_landscapes namespace")?;
+        if name.is_empty()
+            || !name
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+        {
+            return Err("Invalid vanilla density alias path".into());
+        }
+        if !original.starts_with("minecraft:overworld/") {
+            return Err("Vanilla aliases may only reference overworld density functions".into());
+        }
+        let text = densities
+            .get(original)
+            .ok_or("Vanilla density source is missing")?;
+        let target = destination
+            .join("data/immersive_landscapes/worldgen/density_function")
+            .join(format!("{name}.json"));
+        if target.exists() {
+            return Err("Refusing to overwrite a preset file with a vanilla alias".into());
+        }
+        std::fs::create_dir_all(target.parent().ok_or("Invalid density alias directory")?)?;
+        std::fs::write(target, text)?;
+    }
+    Ok(())
 }
 
 fn write_embedded(destination: &Path) -> Result<()> {
@@ -54,12 +128,12 @@ fn copy_preset(source: &Path, destination: &Path) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn prepare(request: &WorldRequest, settings: &Settings) -> Result<()> {
+pub(super) fn prepare(request: &WorldRequest, settings: &Settings, resources: &Path) -> Result<()> {
     let root = &request.save_root;
     if root.join(MARKER).is_file() {
         let saved: Descriptor = serde_json::from_slice(&std::fs::read(root.join(MARKER))?)?;
-        if saved.version != 4 {
-            return Err("This is an archived Immersive Landscapes prototype world. Open it with its pinned experimental build; create a new world for the native Epic-based preset.".into());
+        if !matches!(saved.version, 4 | 5) {
+            return Err("This is an archived Immersive Landscapes prototype world. Open it with its pinned experimental build; create a new world for the current preset.".into());
         }
         if !root
             .join("datapacks")
@@ -72,6 +146,12 @@ pub(super) fn prepare(request: &WorldRequest, settings: &Settings) -> Result<()>
                     .into(),
             );
         }
+        log::info!(
+            "Immersive Landscapes {VERSION}: retaining saved preset {} (descriptor {}) in {}",
+            saved.preset,
+            saved.version,
+            root.display()
+        );
         return Ok(());
     }
     if settings.mods.disabled.contains(ID)
@@ -95,21 +175,30 @@ pub(super) fn prepare(request: &WorldRequest, settings: &Settings) -> Result<()>
         );
     }
     let external = std::env::current_dir()?.join("horizon-mods/immersive-landscapes-preset");
-    if external.join("pack.mcmeta").is_file() {
-        copy_preset(&external, &destination)?;
+    let source = external
+        .join("pack.mcmeta")
+        .is_file()
+        .then_some(external.as_path());
+    // Determine the actual recipe before writing any world data. An external
+    // override must never be stamped with an unrelated embedded preset's name.
+    let identity = preset_identity(source)?;
+    if let Some(source) = source {
+        copy_preset(source, &destination)?;
     } else {
         write_embedded(&destination)?;
     }
+    write_vanilla_aliases(&identity, resources, &destination)?;
     let descriptor = Descriptor {
-        version: 4,
-        preset: "epic-compact-v1".into(),
-        author: "dormyu".into(),
-        based_on: "Epic Terrain, wonderfulaichen, MIT, 08507bd3d606ad440b40a5fa726e0098d7309347"
-            .into(),
+        version: identity.descriptor_version,
+        preset: identity.preset,
+        author: identity.author,
+        based_on: identity.based_on,
     };
     std::fs::write(root.join(MARKER), serde_json::to_vec_pretty(&descriptor)?)?;
     log::info!(
-        "Immersive Landscapes {VERSION}: installed Minecraft-scale native preset in {}",
+        "Immersive Landscapes {VERSION}: installed preset {} (descriptor {}) in {}",
+        descriptor.preset,
+        descriptor.version,
         root.display()
     );
     Ok(())

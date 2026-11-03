@@ -1,6 +1,6 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.2.0-dev.2"
+version = "0.3.0-dev.1"
 priority = 110
 
 [compatibility]
@@ -27,6 +27,7 @@ helper = "prepare.rs"
 bindings = [
   { name = "request", ty = "&crate::game::world_loading::WorldRequest", value = "&self" },
   { name = "settings", ty = "&crate::game::Settings", value = "settings" },
+  { name = "options", ty = "&crate::game::Options", value = "options" },
 ]
 
 [[injection]]
