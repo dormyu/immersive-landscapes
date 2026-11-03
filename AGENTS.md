@@ -48,3 +48,17 @@
   No Java compatibility work and no DormCore framework without a real consumer.
 - Work in small, verifiable commits. Update gate status with evidence and the next
   exact action. Do not mark a task complete while an acceptance check fails.
+
+## Latest lab supplement — 2026-11-03, SRC-017
+
+The owner gave positive feedback about the current v5 world except the transient
+near/far water boundary. This is not complete renderer acceptance. They requested
+the launch graphics profile with near32 and clarified the OptiFine-like feature
+as Zoom. Current DormLab runtime 44f1baf1 adds official Horizon Zoom2.0.0/MIT
+(unmodified725ff7a source), separate from generation-only Immersive Landscapes.
+Near32/DH128 Medium/sim8/cap120/VSync on/nativeLOD0/workers Auto. Z holds4x,
+the wheel adjusts it. Solo, two-client Zoom and installed Prism checks passed;
+current reports: RustCore/qa/dh-transition-2026-11-03/reports. Older5dd3/near16
+metrics above are historical. Read native-build.json for current hashes and QA.
+No complete water-seam,32/120 or heavy-pack acceptance claim. Preserve the
+current terrain recipe while working on the remaining boundary issue.

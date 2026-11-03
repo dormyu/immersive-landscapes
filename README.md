@@ -67,3 +67,6 @@ Own code is [MIT](LICENSE). Historical Epic Terrain data retains wonderfulaichen
 MIT notice; DH is a separate LGPL project. See [CREDITS](CREDITS.md). No game assets,
 prepared resources, accounts or saves are distributed. Minecraft belongs to
 Mojang/Microsoft; this project is independent and not endorsed by them.
+
+The local DormLab set also includes the separate official Horizon Zoom mod; see
+[the current profile and validation](docs/dormlab-zoom-2026-11-03.md).

@@ -49,3 +49,8 @@ RustCore/reports/development-2026-11-03/WORK-IN-PROGRESS.md.
 
 История Epic-кандидата: [validation-0.2.0-dev.1.md](validation-0.2.0-dev.1.md)
 и Git. Старые результаты не подменяют проверку v5.
+
+## Latest local lab supplement
+
+[Official Zoom, restored near32 profile and current checks](dormlab-zoom-2026-11-03.md).
+Current native hashes/reports come from the lab manifest; old near16 results are historical.

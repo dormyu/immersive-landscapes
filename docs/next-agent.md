@@ -77,3 +77,8 @@ near_only.py, install_native.py, verify_native_prism.py. Runtime SHA5dd3d0cd.
 CLI/native control только в тестовых копиях. После правок: сборка → QA →
 откат → установка → реальный Prism → readback → Obsidian и проверка ссылок.
 История v4: validation-0.2.0-dev.1.md и Git, не результаты проверки v5.
+
+## Latest local lab supplement
+
+[Official Zoom, restored near32 profile and current checks](dormlab-zoom-2026-11-03.md).
+Current native hashes/reports come from the lab manifest; old near16 results are historical.
