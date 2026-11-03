@@ -1,5 +1,21 @@
 # Immersive Landscapes implementation
 
+## Current source version —0.3.1 / SRC-018
+
+The owner identifies this as a working mod in active development; do not label
+the whole project a prototype. Source now uses vanilla-natural-v2 / descriptor6,
+seven overrides and two private native aliases. New worlds suppress the reported
+detached formation through base_3d_noise amplitude0.35; this is tested tuning,
+not a universal terrain guarantee. Existing v4/v5 recipes stay byte-identical.
+DHdormyu.5 is separate LGPL code; Zoom2.0.0 remains unmodified official MIT code.
+UI/save/old recipes, two native clients, water-core regressions and near32
+diagnostics passed. Exact installed/Prism status must be read from native-build.json.
+QA: ../RustCore/qa/dh-handoff-2026-11-03. Hydrology/deltas/ecotones and universal
+near/far matching remain unfinished. Preserve the owner's current cap/VSync;
+the120/on restoration below is historical. Older source/profile notes below
+describe previous checkpoints and do not override this section.
+
+
 - Deliver a playable **Horizon native mod**, not a replacement engine or a CLI-only
   terrain library. The existing Rust library is an internal component of that mod.
 - Scope is ONLY world generation: realistic mountains, connected rivers/waterbodies,

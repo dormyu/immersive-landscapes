@@ -41,7 +41,7 @@ does not claim to have invented them.
 
 Epic Terrain's data was directly reused in v4 and remains in its preserved recipe.
 The current vanilla-natural overlay uses the owner's installed Minecraft/Horizon
-registries and our own density functions. Its vanilla offset alias is materialized
+registries and our own density functions. Its vanilla offset and base_3d_noise aliases are materialized
 locally when creating a world; game registry files are not redistributed in the
 native bundle. The other terrain
 projects remain references; their Java implementation is not bundled.

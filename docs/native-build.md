@@ -34,31 +34,31 @@ The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
 documented patched tool / combined build or the tested prebuilt DormLab executable.
 Game resources, accounts and worlds are never part of this source package.
 
-## Current generation path (0.3.0-dev.2)
+## Current generation path (0.3.1)
 
 `preset.generated.rs`, `preset_adapter.rs`, `prepare.rs` and `list.rs` implement
 the generation path. The rejected custom ChunkGenerator/LevelShape
-hooks have been removed. `tools/prepare_vanilla_natural.py` generates the six
+hooks have been removed. `tools/prepare_vanilla_natural.py` generates the seven
 original density overrides in `presets/vanilla-natural`; `tools/native.py generate`
 validates their SHA-256 and embeds that directory. The source and world copies
 use identical LF bytes. Git's scoped EOL rule and the embedding tool reject
 newline drift instead of publishing mismatched checksums.
 
-The original vanilla offset is read from the owner's prepared resources at new
-world creation and saved under a private alias in that world's data pack. It is
-not included in the mod source or bundle. Climate, biome, decoration, cave, ore,
+Original vanilla offset and base_3d_noise definitions are read from the owner's
+prepared resources when creating a world and saved under two private aliases
+in that world's data pack. These definitions are not included in the source or bundle. Climate, biome, decoration, cave, ore,
 structure and dimension definitions are not replaced. See
 [the generation design](vanilla-natural.md) for the scope and remaining limits.
 
 The cancellable HEAD on `WorldRequest::prepare_world` installs that data pack
 before the normal engine loads it. Dedicated servers call the same method, so
 their new normal worlds receive the same generation recipe. Existing vanilla
-worlds are skipped; descriptor4 and descriptor5 worlds retain their own saved recipe. Older
+worlds are skipped; descriptor4, descriptor5 and descriptor6 worlds retain their own saved recipe. Older
 prototype descriptors are refused rather than silently changing their terrain.
 
 External presets under `<game>/horizon-mods/immersive-landscapes-preset` are
 copied only into new worlds. They must contain `pack.mcmeta` and `IL-PRESET.json`
-with schema1, descriptor_version5, preset, author, based_on and optional
+with schema1, descriptor_version5 or6, preset, author, based_on and optional
 vanilla_aliases. The marker uses that actual identity. Symbolic links are
 refused. Such presets are an explicit development override, not a claim
 that arbitrary Java data packs are compatible.
@@ -66,10 +66,10 @@ that arbitrary Java data packs are compatible.
 ## Named creation-screen type
 
 The enabled mod owns the normal-world generation slot, whose creation-screen
-name is now **Immersive Landscapes**. This is the existing candidate recipe under an
+name is now **Immersive Landscapes**. This is the working generation recipe under an
 accurate display name. The persisted Horizon identity remains `minecraft:normal`,
-with descriptor5 and the world-local data pack for new worlds. Old v4 worlds keep
-their Epic recipe; this update does not migrate them. Flat, large-biome and other
+with descriptor6 and the world-local data pack for new worlds. Old v4/v5 worlds keep
+their Epic/v1 recipe; this update does not migrate them. Flat, large-biome and other
 slots keep their own behavior.
 
 `world_type_ui.rs` keeps a presentation flag, synchronized at native-mod discovery
@@ -82,5 +82,24 @@ generation work or added filesystem reads are involved in displaying the label.
 
 On f42ef42 the creation screen belongs to `horizon-client-lib`. Its two UI
 injections target that actual crate; gameplay hooks remain in `horizon-client`.
-The six numeric terrain functions and descriptor5 are unchanged by this port.
+The original f42 port retained the six v1 functions and descriptor5. Version0.3.1
+adds a seventh override (base_3d_noise amplitude0.35) and descriptor6/v2.
+The native world-creation hooks and menu integration remain the same.
 The earlier c9d474d build and its tool patch remain historical rollback material.
+
+## Memory-limited Windows check
+
+The verified16GiB lab build uses the fast profile with per-package overrides
+for horizon-client: incremental=false, opt-level=2, codegen-units=64. Other
+engine libraries retain their existing optimized profile. After staging, these
+are ordinary Cargo overrides; use one job and an E: target/temp directory:
+
+```powershell
+cargo --config profile.fast.package.horizon-client.incremental=false --config profile.fast.package.horizon-client.opt-level=2 --config profile.fast.package.horizon-client.codegen-units=64 build --offline --locked -j 1 -p horizon-client --bin horizon-client -p horizon-client-lib --bin horizon-ctl --profile fast
+```
+
+Run from the mixed stage, with CARGO_TARGET_DIR pointing at the build target.
+The local guarded resume script is RustCore/qa/dh-handoff-2026-11-03/resume_build.py.
+The source package also supports the normal upstream fast profile when more
+RAM is available. Frame results describe the actual measured binary, not an
+assumed benefit from a compiler flag.

@@ -1,5 +1,15 @@
 # DormLab: official Zoom and restored graphics profile
 
+Current native set: IL0.3.1 / DHdormyu.5 / official Zoom2.0.0 on f42ef42.
+Z holds zoom; the wheel changes its strength. Current source/renderer checks:
+[0.3.1 validation](validation-0.3.1.md). Read the installed native-build.json
+for delivery hashes and the owner's current preferences. The owner subsequently
+changed cap/VSync; preserve them. The120/on profile and runtime44f1 below
+are the historical Zoom-install checkpoint.
+
+## Previous checkpoint
+
+
 The local three-mod set adds [Horizon Zoom 2.0.0](https://github.com/horizon-rust/horizon-mods/tree/725ff7a41017c40104273e407264e0ebee87e567/native/zoom),
 MIT, Ludovic Marie and Horizon contributors. Its Rust source is unchanged.
 It uses the stable native hooks; only the staged compatibility pin is set to
