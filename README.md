@@ -4,7 +4,7 @@ Familiar Minecraft terrain with more coherent mountain regions and graded river
 valleys. A native mod for the **Horizon Rust client and Rust dedicated server**,
 by **dormyu**.
 
-> `0.3.0-dev.1` is a development candidate. Visual quality, distant rendering and
+> `0.3.0-dev.2` is a development candidate. Visual quality, distant rendering and
 > smooth gameplay require in-game verification and owner feedback. The earlier
 > v4 acceptance claim was incorrect; see [the correction](docs/feedback-correction.md).
 
@@ -28,7 +28,7 @@ Noise valleys are **not** a physically simulated drainage network or validated
 river deltas. Vanilla biome identities and vegetation boundaries remain discrete.
 These are open development areas, not completed features.
 
-![Actual 0.3.0-dev.1 candidate with Distant Horizons](docs/images/vanilla-natural-v1.png)
+![Actual candidate with Distant Horizons](docs/images/vanilla-natural-v2.png)
 
 ## Create a world
 
@@ -46,10 +46,11 @@ recipe. Archived v1–v3 prototypes require their pinned experimental build.
 
 ## Build and performance
 
-The integration targets Horizon Nightly `c9d474d` / Minecraft 26.3. A `.hnmod`
+The integration targets Horizon Nightly `f42ef42` / Minecraft 26.3. A `.hnmod`
 must be compiled into Horizon; copying the bundle beside an executable does not
 activate it. See [native build notes](docs/native-build.md), the
-[current handoff](docs/next-agent.md) and [candidate details](docs/vanilla-natural.md) and [measured checks](docs/validation-0.3.0-dev.1.md).
+[current handoff](docs/next-agent.md), [candidate details](docs/vanilla-natural.md)
+and [measured checks](docs/validation-0.3.0-dev.2.md).
 
 Terrain changes run during generation; this mod adds no gameplay-frame callback.
 Distant rendering is supplied separately by the pack's adaptation of

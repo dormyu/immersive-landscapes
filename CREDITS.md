@@ -52,9 +52,10 @@ projects remain references; their Java implementation is not bundled.
   Rust client/server platform, MIT for its original code.
 - [horizon-mixins](https://github.com/horizon-rust/horizon-mixins) — levzzz5154 and
   contributors; native integration tooling.
-  Our build uses the original MIT code at `0d6b103` with a small boundary HEAD
-  macro-preservation patch by dormyu. The patch, regression test and original MIT
-  notice are bundled; see [native build notes](docs/native-build.md).
+  Our current build uses the original MIT code at `ddd9700` with dormyu's small
+  inert `recursion_limit` attribute fix. Earlier boundary HEAD macro preservation
+  is now upstream. The patch, compiled regression test and original MIT notice
+  are bundled; see [native build notes](docs/native-build.md).
 - [Distant Horizons](https://gitlab.com/distant-horizons-team/distant-horizons) —
   James Seibel and contributors; original distant-terrain project.
 - [Distant Horizons for Horizon Client](https://github.com/denizsahin7744/distant-horizons-for-horizon-client)

@@ -8,8 +8,8 @@
 генерация, без survival-систем, классов и нового движка. Не возвращать ×4
 высоты или голый height-only прототип. Полный Epic больше не default новых миров.
 
-0.3.0-dev.1 / descriptor5 / vanilla-natural-v1: шесть оригинальных density-функций
-поверх Horizon c9d474d /26.3. Общие поля хребтов и долин используются также
+0.3.0-dev.2 / descriptor5 / vanilla-natural-v1: шесть оригинальных density-функций
+поверх Horizon f42ef42 /26.3. Общие поля хребтов и долин используются также
 выбором биомов; равнинные долины расширены относительно горных, дно внутренних
 русел защищено от чрезмерного понижения. Штатные климат, континенты, высота мира,
 определения биомов, деревьев, пещер, руд и структур сохранены.
@@ -37,7 +37,9 @@ marker/datapack. Vanilla-миры пропускаются; старые v4/Epic
 
 Точный статус: `../RustCore/packs/DormLab/rustcore/native-build.json`.
 Журнал: `../RustCore/reports/development-2026-11-03/WORK-IN-PROGRESS.md`.
-QA: `../RustCore/qa/immersive-landscapes-2026-11-03`.
+QA текущего бинарника: `../RustCore/qa/dh-lifecycle-2026-11-03`.
+[Проверки0.3.0-dev.2](validation-0.3.0-dev.2.md). Старые проверки ниже — история
+vanilla-natural-v1 на c9; не подменять ими readback установленного f42-билда.
 Прочитать реальные отчёты перед утверждением, что проверка пройдена.
 
 - verify_natural_world.py: RU/EN UI, создание v5, точный рецепт, сохранение
@@ -65,7 +67,12 @@ QA: `../RustCore/qa/immersive-landscapes-2026-11-03`.
    окончательная география; DormCore пока не нужен.
 
 Всё на E:, Enter-RustDev.ps1, stable toolchain, одна Cargo job; без игры
-во время полной сборки. DH — отдельная адаптация b64902c, mixins19140348.
+во время полной сборки. DH — отдельная адаптация dormyu.4 / код4226836, mixinsddd9700 + patchd4af4d8.
+Новый QA: verify_native_functional.py, verify_native_network.py, native_view.py,
+near_only.py, install_native.py, verify_native_prism.py. Runtime SHA5dd3d0cd.
+Установку подтверждать только по native-build.json и Prism readback.
+Некоторые серые обрывы подтверждены в настоящих near32-чанках без LOD;
+нужно отдельно проверять поверхность и сами дальние сетки. 32/120 не принято.
 Читать AGENTS; сохранять миры/аккаунты/чистую RustCore. Не читать токены.
 CLI/native control только в тестовых копиях. После правок: сборка → QA →
 откат → установка → реальный Prism → readback → Obsidian и проверка ссылок.

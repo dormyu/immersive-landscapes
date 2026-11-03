@@ -21,7 +21,7 @@ Descriptor5 identifies this generation family. Descriptor4 worlds remain readabl
 with their saved recipe and are not migrated. Existing vanilla saves are skipped.
 The title-screen type remains Immersive Landscapes while the mod is enabled.
 
-Native probes compared three seeds, including the owner's ordinary-world seed,
+Historical c9d474d native probes compared three seeds, including the owner's ordinary-world seed,
 on 4,225 points each over a 4,096-block square. The new candidate retained 33–46
 biomes in these samples and comparable heights, with zero unsupported generator
 features or override warnings. These measurements are limited samples, not proof
