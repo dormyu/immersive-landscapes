@@ -70,6 +70,11 @@ def recipe():
         "data/minecraft/worldgen/density_function/overworld/ridges.json": ridges,
         "data/minecraft/worldgen/density_function/overworld/erosion.json": erosion,
         "data/minecraft/worldgen/density_function/overworld/offset.json": offset,
+        # Retain three-dimensional rock detail without the full vanilla amplitude
+        # that can detach a large surface mass above a narrow ridge. Caverns and
+        # carvers remain in the final-density pipeline; this is not a height-only generator.
+        "data/minecraft/worldgen/density_function/overworld/base_3d_noise.json":
+            binary("mul", .35, "immersive_landscapes:vanilla_base_3d"),
     }
 
 
@@ -83,10 +88,11 @@ def main():
         "description": "Immersive Landscapes: vanilla terrain with coherent ranges and graded valleys, by dormyu",
         "pack_format": 121, "min_format": 121, "max_format": 121}}, indent=2) + "\n", encoding="utf-8", newline="\n")
     metadata = {
-        "schema": 1, "preset": "vanilla-natural-v1", "author": "dormyu",
+        "schema": 1, "preset": "vanilla-natural-v2", "author": "dormyu",
         "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
-        "generation_family": "vanilla-natural", "descriptor_version": 5,
-        "vanilla_aliases": {"immersive_landscapes:vanilla_offset": "minecraft:overworld/offset"},
+        "generation_family": "vanilla-natural", "descriptor_version": 6,
+        "vanilla_aliases": {"immersive_landscapes:vanilla_offset": "minecraft:overworld/offset",
+                            "immersive_landscapes:vanilla_base_3d": "minecraft:overworld/base_3d_noise"},
         "preserves": ["vanilla continents and climate scale", "vanilla height limits and sea level",
                       "biomes and surface rules", "trees and vegetation", "caves and ores",
                       "structures", "Nether and End"],
@@ -94,7 +100,8 @@ def main():
                     "gentler erosion-field variation across mountain regions",
                     "wider valley profiles in eroded lowlands, narrower mountain passes",
                     "inland river-floor protection, fading out before ocean terrain",
-                    "terrain and biome placement consume the same fields"],
+                    "terrain and biome placement consume the same fields",
+                    "base 3D rock-detail amplitude .35 to suppress detached surface masses"],
         "known_limits": ["Noise valleys are not a simulated drainage graph or validated deltas",
                          "Vanilla biome identity and vegetation boundaries remain discrete",
                          "Native near/far surface sampling differences still require checking"],

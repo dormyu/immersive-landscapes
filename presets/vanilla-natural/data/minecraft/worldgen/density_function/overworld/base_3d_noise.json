@@ -1,0 +1,5 @@
+{
+  "type": "minecraft:mul",
+  "left": 0.35,
+  "right": "immersive_landscapes:vanilla_base_3d"
+}

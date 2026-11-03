@@ -1,6 +1,6 @@
 [package]
 name = "immersive-landscapes"
-version = "0.3.0-dev.2"
+version = "0.3.1"
 edition = "2024"
 rust-version = "1.85"
 authors = ["dormyu"]

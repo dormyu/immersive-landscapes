@@ -1,6 +1,6 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.3.0-dev.2"
+version = "0.3.1"
 priority = 110
 
 [compatibility]
