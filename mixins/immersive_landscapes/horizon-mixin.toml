@@ -89,6 +89,13 @@ name = "immersive_landscapes_hydrology"
 source = "hydrology.rs"
 visibility = "pub"
 
+[[module]]
+id = "span_ops"
+file = "crates/horizon-world/src/worldgen.rs"
+name = "immersive_landscapes_spans"
+source = "span_ops.rs"
+visibility = "pub"
+
 [[injection]]
 id = "hydrology_build"
 kind = "HEAD"

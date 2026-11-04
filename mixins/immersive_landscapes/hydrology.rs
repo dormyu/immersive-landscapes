@@ -2,6 +2,7 @@
 use super::generator::{LodColumn, ProtoChunk, SurfaceSample};
 use super::immersive_landscapes_watershed::{Config, Land, Profile, Terrain, World};
 use super::terrain::TerrainError;
+use super::immersive_landscapes_spans::replace_run;
 use crate::registry::{BlockRegistry, BlockStateId};
 use horizon_core::density::{DensitySampler, SampleError, SamplerContext};
 use horizon_core::{
@@ -445,25 +446,6 @@ pub fn fill_surface(
         sample.state = paint.bed(x, z, atlas.seed);
     }
     sample.water = Some((water, paint.water));
-}
-
-fn replace_run(spans: &mut Vec<(i32, i32, BlockStateId)>, lo: i32, hi: i32, state: BlockStateId) {
-    let mut out = Vec::with_capacity(spans.len() + 2);
-    for &(a, b, block) in spans.iter() {
-        if b <= lo || a >= hi {
-            out.push((a, b, block));
-        } else {
-            if a < lo {
-                out.push((a, lo, block));
-            }
-            if b > hi {
-                out.push((hi, b, block));
-            }
-        }
-    }
-    out.push((lo, hi, state));
-    out.sort_unstable_by_key(|run| run.0);
-    *spans = out;
 }
 
 pub fn fill_column(
