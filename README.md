@@ -53,18 +53,18 @@ The integration targets Horizon Nightly `f42ef42` / Minecraft 26.3. A `.hnmod`
 must be compiled into Horizon; copying the bundle beside an executable does not
 activate it. See [native build notes](docs/native-build.md), the
 [current handoff](docs/next-agent.md), [generation details](docs/vanilla-natural.md)
-and [current renderer checks](docs/dh-water-parity-2026-11-04.md).
+and [current renderer checks](docs/dh-boundary-detail-2026-11-04.md).
 The original0.3.1 release checks remain [here](docs/validation-0.3.1.md).
 
 Terrain changes run during generation; this mod adds no gameplay-frame callback.
 Distant rendering is supplied separately by the pack's adaptation of
 [Distant Horizons for Horizon Client](https://github.com/denizsahin7744/distant-horizons-for-horizon-client).
 Actual near chunks and DH distance are separate settings. The latest local
-DHdormyu.6 update fixes the reproduced black water line, exact near-hole positions
-and stale worker results. A short offscreen1080p near32/DH128 Medium/cap120 check
-measured 120.0FPS stationary and 119.6FPS in flight,
-maximum flight frame14.8ms (VSync/audio off).
-[Before/after, source set and scoped validation](docs/dh-water-parity-2026-11-04.md).
+DH dormyu.7 update adds bounded detail at the actual near boundary and native biome
+grass colors, retaining the prior water/mask fixes. Low/Lowest keep their original plan.
+A short warmed offscreen1080p near32/DH128 Medium/cap120 check measured
+119.5FPS flight, P99 9.41ms, maximum 18.43ms (VSync/audio off).
+The extra geometry has a cost; [before/after, CPU/GPU and memory comparison](docs/dh-boundary-detail-2026-11-04.md).
 Long exploration, older-PC profiles and heavy-pack headroom remain unverified.
 
 ## Known issues and ongoing work

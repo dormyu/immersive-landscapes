@@ -1,17 +1,19 @@
 # Immersive Landscapes implementation
 
-## Current verified delivery — DHdormyu.6 / IL0.3.1
+## Current verified delivery — DHdormyu.7 / IL0.3.1
 
-Working mod, active development. DormLab: IL0.3.1/v2/descriptor6 + DHdormyu.6
-and official Zoom2.0.0, Horizon f42ef42, runtime5b599bb2. Terrain recipes unchanged
-from0.3.1; no forced full DH-cache reset. Exact near masks, GPU-complete coverage,
-stale-worker protection and still-fluid height fix the reproduced black water line.
-23 core tests/Clippy, native UI/save/old recipes, two Rust clients and installed
-Prism pass. All 3779 original save files/preferences preserved, control off.
-Short near32/DH128 Medium1080p/cap120: flight119.62FPS/max14.77ms.
-Remaining seabed/detail transitions, hydrology/ecotones, long routes and heavy-pack
-acceptance stay open. Preserve personal cap260/VSync off; inspect current files.
-QA: RustCore/qa/dh-water-parity-2026-11-04; rollback before-near-parity-install.
+Working mod, active development. DormLab: IL0.3.1/v2/descriptor6 + DHdormyu.7
+and unchanged official Zoom2.0.0, Horizon f42ef42, runtime7292006b.
+Bounded block detail at the near boundary and native grass/leaf tint parity;
+prior water/GPU/mask/stale-worker fixes retained. Terrain recipes/cache format unchanged.
+26 core tests/Clippy, UI/save/old recipes, two Rust clients and installed Prism pass.
+All 5127 original save files and preferences preserved, control off.
+Short warmed near32/DH128 Medium1080p/cap120: flight119.53FPS,
+P999.41ms/max18.43ms; scoped, not heavy-pack acceptance.
+The extra boundary band costs geometry; Low/Lowest retain the original plan.
+Remaining vegetation/detail transitions, hydrology/ecotones and long/heavy-pack routes open.
+Preserve personal cap260/VSync off/near32; do not close Teams.
+QA: RustCore/qa/dh-boundary-detail-2026-11-04; rollback before-boundary-detail-install.
 Read native-build.json for full hashes. Older version/profile notes below are historical.
 
 - Deliver a playable **Horizon native mod**, not a replacement engine or a CLI-only

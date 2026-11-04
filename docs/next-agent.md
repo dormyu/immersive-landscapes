@@ -1,29 +1,33 @@
-# Продолжение Immersive Landscapes —0.3.1 / DHdormyu.6
+# Current checkpoint — DH dormyu.7 / IL 0.3.1
 
-Рабочий мод в активной разработке, автор dormyu (SRC-018).
-Актуальные [проверки стыка воды](dh-water-parity-2026-11-04.md) и [первой0.3.1](validation-0.3.1.md).
-DormLab: Horizon f42ef42, **runtime5b599bb2**, IL0.3.1/v2/descriptor6,
-DH0.1.0+dormyu.6, официальный Zoom2.0.0. Генерация в этой итерации не менялась;
-IL native-бандл и snapshotaaa4a0b сохранены. DH built code0807fc6/sourcec1b70df.
+DormLab client `7292006be9ccf7629d3e6052f799244665f413a9f02bfb9ae7ad4fd1cbc32ca4`, Horizon f42ef42, IL0.3.1/v2/descriptor6,
+DH0.1.0+dormyu.7, unchanged official Zoom2.0.0. Working version, active development.
+Terrain recipe unchanged; IL native package/source snapshotaaa4a0b retained.
+DH built code593671e; full source commit recorded in native-build.json.
 
-Исправлены высота воды, GPU-готовность, пространственные маски near и старые
-результаты работников. В сравнительной сцене чёрная полоса исчезла (723→0);
-разница детализации дна местами остаётся. Кэш water-volume-v2 совместим,
-полного сброса не требуется. Для DH можно открыть старый мир; для новой
-генерации — новый тип Immersive Landscapes. Мирыv4/v5/v6 не мигрировать молча.
+Bounded near-boundary detail in Medium/High/Extreme and native biome tint parity;
+previous water/GPU/exact mask/stale-worker fixes retained. Low/Lowest unchanged.
+[Current comparison and measured cost](dh-boundary-detail-2026-11-04.md).
+26 tests/Clippy, solo/UI/save/old recipes, two Rust clients and installed Prism pass.
+5127 owner save files/settings preserved; control off. Teams left running.
+Short warmed near32/DH128 Medium/cap120 flight 119.53FPS,
+P99 9.41/max 18.43ms is not heavy-pack acceptance.
 
-23 теста/Clippy, UI/save/старые рецепты, два клиента и установленный Prism
-проверены. 3779 файлов личных saves и настройки сохранены, control off.
-Короткий near32/DH128 Medium1080p/cap120 flight119.62FPS/max14.77ms —
-не приёмка тяжёлой сборки, cold near32, длительного исследования или всех сцен.
+Next: owner review of this exact installed build/world, remaining plant/material/detail
+transitions, then hydrology/outlets/deltas and gradual vegetation at Minecraft scale.
+Do not repeat the v4 acceptance mistake or silently migrate recipes. No survival/classes,
+DormCore framework, bare height-only prototype or fourfold mountain amplification.
+Future structures target eventually approved versioned IL geography.
 
-Следующее: оставшиеся near/far различия дна/материалов, затем гидрология
-с выходами/устьями/дельтами и экотоны, сохраняя Minecraft-масштаб и лес/биомы.
-Не начинать survival/классы/DormCore и не возвращать bare height-only или×4 горы.
-Точную текущую поставку читать в ../RustCore/packs/DormLab/rustcore/native-build.json.
-QA/откат: ../RustCore/qa/dh-water-parity-2026-11-04/before-near-parity-install.
-Все файлы/temp/cache E:, Enter-RustDev.ps1, stable, одна Cargo job.
-Сохранить личные cap260/VSync off/near32; не сбрасывать к историческим120/on.
+QA/rollback: ../RustCore/qa/dh-boundary-detail-2026-11-04/before-boundary-detail-install.
+Exact delivery: ../RustCore/packs/DormLab/rustcore/native-build.json.
+Native /dh commands must pass through client chat (T/type/Enter). The control
+command endpoint executes on the server; the first quality-switch harness failure
+and its timings remain in reports/perf-harness-first, followed by a corrected run.
+All files/temp/cache on E:, Enter-RustDev.ps1, stable, one Cargo job.
+Preserve personal cap260/VSync off/near32; never close Teams to make room.
+
+Below is historical handoff content; current versions above take precedence.
 
 ---
 
