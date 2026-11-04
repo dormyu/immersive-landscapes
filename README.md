@@ -53,20 +53,24 @@ The integration targets Horizon Nightly `f42ef42` / Minecraft 26.3. A `.hnmod`
 must be compiled into Horizon; copying the bundle beside an executable does not
 activate it. See [native build notes](docs/native-build.md), the
 [current handoff](docs/next-agent.md), [generation details](docs/vanilla-natural.md)
-and [current checks](docs/validation-0.3.1.md).
+and [current renderer checks](docs/dh-water-parity-2026-11-04.md).
+The original0.3.1 release checks remain [here](docs/validation-0.3.1.md).
 
 Terrain changes run during generation; this mod adds no gameplay-frame callback.
 Distant rendering is supplied separately by the pack's adaptation of
 [Distant Horizons for Horizon Client](https://github.com/denizsahin7744/distant-horizons-for-horizon-client).
-Actual near chunks and DH distance are separate settings. A short 1080p
-check in a reopened warmed coast scene, with 32 near chunks and DH128 Medium,
-measured 119.8 FPS stationary and 118.4 FPS in flight;
-the maximum flight frame was 20.6 ms (offscreen, cap120, VSync/audio off).
-This is a bounded diagnostic; long exploration and heavy-pack headroom remain unverified.
+Actual near chunks and DH distance are separate settings. The latest local
+DHdormyu.6 update fixes the reproduced black water line, exact near-hole positions
+and stale worker results. A short offscreen1080p near32/DH128 Medium/cap120 check
+measured 120.0FPS stationary and 119.6FPS in flight,
+maximum flight frame14.8ms (VSync/audio off).
+[Before/after, source set and scoped validation](docs/dh-water-parity-2026-11-04.md).
+Long exploration, older-PC profiles and heavy-pack headroom remain unverified.
 
 ## Known issues and ongoing work
 
-- The pack's separate DH adaptation fixes internal water walls at biome boundaries
+- The pack's separate DH adaptation fixes the compared black water-boundary line,
+  GPU readiness and exact near-hole masks, as well as internal walls at biome boundaries
   and gaps around submerged plants. The reported floating rock also reproduced
   in full-detail terrain and is corrected for the checked seed in new v6 worlds.
   These targeted checks do not prove seamless rendering or grounded terrain for every seed.

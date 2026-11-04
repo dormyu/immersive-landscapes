@@ -1,20 +1,18 @@
 # Immersive Landscapes implementation
 
-## Current source version —0.3.1 / SRC-018
+## Current verified delivery — DHdormyu.6 / IL0.3.1
 
-The owner identifies this as a working mod in active development; do not label
-the whole project a prototype. Source now uses vanilla-natural-v2 / descriptor6,
-seven overrides and two private native aliases. New worlds suppress the reported
-detached formation through base_3d_noise amplitude0.35; this is tested tuning,
-not a universal terrain guarantee. Existing v4/v5 recipes stay byte-identical.
-DHdormyu.5 is separate LGPL code; Zoom2.0.0 remains unmodified official MIT code.
-UI/save/old recipes, two native clients, water-core regressions and near32
-diagnostics passed. Exact installed/Prism status must be read from native-build.json.
-QA: ../RustCore/qa/dh-handoff-2026-11-03. Hydrology/deltas/ecotones and universal
-near/far matching remain unfinished. Preserve the owner's current cap/VSync;
-the120/on restoration below is historical. Older source/profile notes below
-describe previous checkpoints and do not override this section.
-
+Working mod, active development. DormLab: IL0.3.1/v2/descriptor6 + DHdormyu.6
+and official Zoom2.0.0, Horizon f42ef42, runtime5b599bb2. Terrain recipes unchanged
+from0.3.1; no forced full DH-cache reset. Exact near masks, GPU-complete coverage,
+stale-worker protection and still-fluid height fix the reproduced black water line.
+23 core tests/Clippy, native UI/save/old recipes, two Rust clients and installed
+Prism pass. All 3779 original save files/preferences preserved, control off.
+Short near32/DH128 Medium1080p/cap120: flight119.62FPS/max14.77ms.
+Remaining seabed/detail transitions, hydrology/ecotones, long routes and heavy-pack
+acceptance stay open. Preserve personal cap260/VSync off; inspect current files.
+QA: RustCore/qa/dh-water-parity-2026-11-04; rollback before-near-parity-install.
+Read native-build.json for full hashes. Older version/profile notes below are historical.
 
 - Deliver a playable **Horizon native mod**, not a replacement engine or a CLI-only
   terrain library. The existing Rust library is an internal component of that mod.
