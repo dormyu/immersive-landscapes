@@ -181,6 +181,13 @@ impl Default for Config {
     }
 }
 
+impl Config {
+    fn fades(self) -> (f64, f64) {
+        let radial = (f64::from(self.radius) * 0.25).min(64.);
+        (radial.min(32.), radial)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key(pub i32, pub i32);
 
@@ -350,9 +357,13 @@ impl Basin {
             out.filled[i] = land.height.max(config.sea);
             out.ocean[i] = land.ocean && land.height <= config.sea;
             if let Some((owner, d, other)) = nearest(p, roots) {
+                let (edge_fade, radial_fade) = config.fades();
+                // Publish drainage only inside the fully carved core. Its
+                // outer bank may feather, but its wet centreline must not fade
+                // into solid terrain before it reaches receiving water.
                 out.active[i] = owner.key == coast.key
-                    && d < f64::from(config.radius)
-                    && other - d > config.margin;
+                    && d < f64::from(config.radius) - radial_fade
+                    && other - d > config.margin + edge_fade;
             }
         }
         let mut queue = BinaryHeap::new();
@@ -534,6 +545,7 @@ impl Basin {
         let p = [f64::from(x), f64::from(z)];
         let [bx, bz] = self.bin(p);
         let mut result: Option<Profile> = None;
+        let mut core_distance = f64::INFINITY;
         for &id in &self.bins[bz * self.bin_side + bx] {
             let s = self.segments[id];
             let v = [s.to[0] - s.from[0], s.to[1] - s.from[1]];
@@ -549,7 +561,17 @@ impl Basin {
             let strength = 1. - smooth((d - s.half_width) / (outer - s.half_width));
             let bed = w - s.depth * (1. - 0.3 * (d / s.half_width).min(1.).powi(2));
             let target = raw + (bed.min(raw) - raw) * strength;
-            if result.is_none_or(|old| target < old.bed) {
+            let core = d <= s.half_width;
+            let choose = if core {
+                d < core_distance
+                    || (d == core_distance && result.is_none_or(|old| target < old.bed))
+            } else {
+                core_distance.is_infinite() && result.is_none_or(|old| target < old.bed)
+            };
+            if choose {
+                if core {
+                    core_distance = d;
+                }
                 result = Some(Profile {
                     bed: target,
                     water: w,
@@ -579,7 +601,11 @@ impl Basin {
                     raw,
                     lake: true,
                 };
-                if result.is_none_or(|old| lake.water > old.water) {
+                if core_distance.is_finite() {
+                    if let Some(channel) = &mut result {
+                        channel.water = channel.water.max(lake.water);
+                    }
+                } else if result.is_none_or(|old| lake.water > old.water) {
                     result = Some(lake);
                 }
             }
@@ -787,8 +813,9 @@ impl<T: Terrain> World<T> {
         }
         let basin = self.basin(coast);
         let mut profile = basin.sample(x, z, basin.raw_at(x, z))?;
-        let border = smooth((second - distance - self.config.margin) / 32.)
-            * smooth((f64::from(self.config.radius) - distance) / 64.);
+        let (edge_fade, radial_fade) = self.config.fades();
+        let border = smooth((second - distance - self.config.margin) / edge_fade)
+            * smooth((f64::from(self.config.radius) - distance) / radial_fade);
         profile.bed = profile.raw + (profile.bed - profile.raw) * border;
         profile.strength *= border;
         (profile.strength > 0.0001).then_some(profile)
@@ -826,7 +853,15 @@ mod tests {
             x: -4,
             z: 0,
         };
-        let b = Basin::compile(c, config(), &CoastHill, &[c]);
+        let b = Basin::compile(
+            c,
+            Config {
+                radius: 512,
+                ..config()
+            },
+            &CoastHill,
+            &[c],
+        );
         assert!(b.input > 100. && b.segments.len() > 10);
         assert!((b.input - b.output).abs() < 1e-9);
         for (i, parent) in b.parent.iter().enumerate() {
@@ -907,6 +942,110 @@ mod tests {
         let world = World::new(Plateau, 1, config());
         assert!(world.sample(-100, 300).is_none());
         assert!(world.coast(Key(-1, -1)).is_none());
+    }
+
+    #[test]
+    fn a_lower_riverbank_cannot_erase_a_nearby_wet_channel() {
+        let c = Coast {
+            key: Key(0, 0),
+            x: 0,
+            z: 0,
+        };
+        let mut basin = Basin::compile(c, config(), &CoastHill, &[c]);
+        basin.segments = vec![
+            Segment {
+                from: [-16., 0.],
+                to: [16., 0.],
+                water: [100., 100.],
+                cells: 8.,
+                half_width: 2.,
+                depth: 3.,
+                mouth: false,
+            },
+            Segment {
+                from: [-16., 10.],
+                to: [16., 10.],
+                water: [70., 70.],
+                cells: 100.,
+                half_width: 4.,
+                depth: 3.,
+                mouth: false,
+            },
+        ];
+        basin.index();
+        let p = basin.sample(0, 0, 100.).unwrap();
+        assert_eq!(
+            p.water, 100.,
+            "a dry feather from the lower river replaced the wet centreline"
+        );
+        assert!(p.bed < p.water && p.strength == 1.);
+    }
+
+    #[test]
+    fn published_channel_centrelines_stay_outside_the_boundary_fade() {
+        let world = World::new(
+            CoastHill,
+            42,
+            Config {
+                radius: 512,
+                root_cell: 768,
+                ..config()
+            },
+        );
+        let mut count = 0;
+        for z in -2..=2 {
+            for x in -1..=1 {
+                let Some(c) = world.coast(Key(x, z)) else {
+                    continue;
+                };
+                let basin = world.basin(c);
+                for s in &basin.segments {
+                    let p = [
+                        ((s.from[0] + s.to[0]) * 0.5) as i32,
+                        ((s.from[1] + s.to[1]) * 0.5) as i32,
+                    ];
+                    let profile = world
+                        .sample(p[0], p[1])
+                        .expect("published channel disappeared");
+                    assert!(
+                        profile.strength > 0.999,
+                        "dry boundary centreline: {p:?} {profile:?}"
+                    );
+                    assert!(profile.bed < profile.water);
+                    count += 1;
+                }
+            }
+        }
+        assert!(count > 3, "fixture needs actual published river paths");
+    }
+
+    #[test]
+    fn a_channel_keeps_its_cut_and_liner_through_a_filled_lake() {
+        let c = Coast {
+            key: Key(0, 0),
+            x: 0,
+            z: 0,
+        };
+        let mut basin = Basin::compile(c, config(), &CoastHill, &[c]);
+        basin.raw.fill(100.);
+        basin.filled.fill(150.);
+        basin.active.fill(true);
+        basin.drains_ocean.fill(true);
+        basin.ocean.fill(false);
+        basin.segments = vec![Segment {
+            from: [-16., 0.],
+            to: [16., 0.],
+            water: [100., 100.],
+            cells: 8.,
+            half_width: 2.,
+            depth: 3.,
+            mouth: false,
+        }];
+        basin.index();
+        let profile = basin.sample(0, 0, 100.).unwrap();
+        assert!(!profile.lake && profile.strength == 1.);
+        assert_eq!(profile.water, 150.);
+        assert!(profile.bed < 100.);
     }
 
     #[test]
