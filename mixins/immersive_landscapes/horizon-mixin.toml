@@ -1,6 +1,6 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.3.1"
+version = "0.4.0"
 priority = 110
 
 [compatibility]
@@ -74,3 +74,91 @@ kind = "HEAD"
 target = "horizon_client_render::mod_list::ModList::save"
 helper = "world_type_toggle.rs"
 bindings = [{ name = "mods", ty = "&crate::mod_list::ModList", value = "self" }]
+
+[[module]]
+id = "watershed"
+file = "crates/horizon-world/src/worldgen.rs"
+name = "immersive_landscapes_watershed"
+source = "watershed.rs"
+visibility = "pub"
+
+[[module]]
+id = "hydrology_runtime"
+file = "crates/horizon-world/src/worldgen.rs"
+name = "immersive_landscapes_hydrology"
+source = "hydrology.rs"
+visibility = "pub"
+
+[[injection]]
+id = "hydrology_build"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::generator::OverworldGenerator::for_world_with_settings"
+helper = "hydrology_build.rs"
+bindings = [
+  { name = "data", ty = "&std::sync::Arc<GeneratorData>", value = "&data" },
+  { name = "seed", ty = "i64", value = "seed" },
+  { name = "preset", ty = "&str", value = "preset" },
+  { name = "dimension", ty = "&str", value = "dimension" },
+  { name = "structures", ty = "bool", value = "with_structures" },
+  { name = "stem", ty = "Option<&Value>", value = "saved_stem" },
+]
+
+[[injection]]
+id = "hydrology_router"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::router::NoiseRouter::compile"
+helper = "hydrology_router.rs"
+bindings = [
+  { name = "router", ty = "NoiseRouter", value = "self" },
+  { name = "compiler", ty = "&mut DensityCompiler", value = "&mut *compiler" },
+]
+
+[[injection]]
+id = "hydrology_proto"
+kind = "RETURN"
+target = "horizon_world::worldgen::generator::GeneratorWorker::generate_proto"
+helper = "hydrology_proto.rs"
+bindings = [
+  { name = "value", ty = "Result<ProtoChunk, GeneratorError>", value = "$value" },
+  { name = "worker", ty = "&GeneratorWorker", value = "&*self" },
+]
+
+[[injection]]
+id = "hydrology_surface"
+kind = "RETURN"
+target = "horizon_world::worldgen::generator::GeneratorWorker::surface_sample"
+helper = "hydrology_surface.rs"
+bindings = [
+  { name = "value", ty = "Option<SurfaceSample>", value = "$value" },
+  { name = "worker", ty = "&GeneratorWorker", value = "&*self" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "z", ty = "i32", value = "z" },
+]
+
+[[injection]]
+id = "hydrology_column"
+kind = "RETURN"
+target = "horizon_world::worldgen::generator::GeneratorWorker::surface_column"
+helper = "hydrology_column.rs"
+bindings = [
+  { name = "value", ty = "(Option<SurfaceSample>, Vec<(i32, i32, BlockStateId)>)", value = "$value" },
+  { name = "worker", ty = "&GeneratorWorker", value = "&*self" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "z", ty = "i32", value = "z" },
+]
+
+[[injection]]
+id = "hydrology_grid"
+kind = "RETURN"
+target = "horizon_world::worldgen::generator::GeneratorWorker::lod_grid"
+helper = "hydrology_grid.rs"
+bindings = [
+  { name = "value", ty = "Result<Vec<LodColumn>, GeneratorError>", value = "$value" },
+  { name = "worker", ty = "&GeneratorWorker", value = "&*self" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "z", ty = "i32", value = "z" },
+  { name = "width", ty = "i32", value = "width" },
+  { name = "side", ty = "usize", value = "side" },
+]

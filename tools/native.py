@@ -49,10 +49,9 @@ def package():
         "mixins": json.loads((ROOT / "compatibility.json").read_text())["horizon_mixins_revision"],
     }
     files = {"horizon-native.json": json.dumps(manifest, indent=2).encode()}
-    for name in ("horizon-mixin.toml", "preset.generated.rs", "preset_adapter.rs", "prepare.rs", "list.rs",
-                 "world_type_ui.rs", "world_type_name.rs", "world_type_button.rs", "world_type_toggle.rs"):
+    for name in ["horizon-mixin.toml", *sorted(p.name for p in BUNDLE.glob("*.rs"))]:
         files["mixins/immersive_landscapes/" + name] = (BUNDLE / name).read_bytes()
-    for name in ("LICENSE", "CREDITS.md", "compatibility.json", "docs/native-build.md", "docs/vanilla-natural.md",
+    for name in ("LICENSE", "README.md", "CREDITS.md", "compatibility.json", "docs/native-build.md", "docs/vanilla-natural.md", "docs/hydrology-development.md",
                  "tools/patches/horizon-mixins-f42-compat.patch", "third-party/horizon-mixins-LICENSE"):
         files[name] = (ROOT / name).read_bytes()
     for path in sorted(PRESET.rglob("*")):
@@ -70,6 +69,7 @@ def package():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("generate", "stage", "check", "build", "package"))
+    parser.add_argument("--with", dest="extra", action="append", default=[], help="additional native bundle for the combined build")
     args = parser.parse_args()
     generate()
     if args.action == "generate":
@@ -78,11 +78,13 @@ def main():
         package()
     else:
         dev = ROOT.parent / "RustCore/development"
-        os.environ.setdefault("HORIZON_MIXINS_BIN", str(dev / "mixins-tool-f42/bin/horizon-mixins.exe"))
+        os.environ.setdefault("HORIZON_MIXINS_BIN", str(dev / "mixins-tool-hydrology/bin/horizon-mixins.exe"))
         if args.action == "build":
             command = [sys.executable, "-X", "utf8", str(dev / "scripts/Run-GuardedBuild.py"), "--with", str(BUNDLE)]
         else:
             command = [sys.executable, "-X", "utf8", str(dev / "distant-horizons/tools/horizon.py"), args.action, "--with", str(BUNDLE)]
+        for extra in args.extra:
+            command.extend(["--with", extra])
         if os.environ.get("CARGO_BUILD_JOBS") != "1" or not Path(os.environ.get("TEMP", "/")).resolve().is_relative_to(dev):
             raise SystemExit("Source RustCore/development/scripts/Enter-RustDev.ps1 first (all temp/cache on E, jobs=1).")
         raise SystemExit(subprocess.call(command, cwd=dev))

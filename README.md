@@ -9,6 +9,10 @@ by **dormyu**.
 > save/reopen, two Rust clients and the installed Prism build have been tested.
 > Known distant-rendering issues and unfinished generation features are listed below.
 
+The `feature/native-hydrology-v3` branch develops **0.4.0** with native connected
+coastal drainage and persisted terrain preprocessing. It is not yet installed
+or released; [candidate status and remaining checks](docs/hydrology-development.md).
+
 ## What changes
 
 The new `vanilla-natural-v2` overlay keeps the normal generator's continents,

@@ -1,5 +1,9 @@
 # Current checkpoint — DH dormyu.7 / IL 0.3.1
 
+Active work after this delivery: [native hydrology candidate](hydrology-development.md).
+Branch feature/native-hydrology-v3 currently contains uninstalled 0.4.0 work;
+do not confuse its source version with the verified delivery described below.
+
 DormLab client `7292006be9ccf7629d3e6052f799244665f413a9f02bfb9ae7ad4fd1cbc32ca4`, Horizon f42ef42, IL0.3.1/v2/descriptor6,
 DH0.1.0+dormyu.7, unchanged official Zoom2.0.0. Working version, active development.
 Terrain recipe unchanged; IL native package/source snapshotaaa4a0b retained.

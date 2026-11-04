@@ -5,12 +5,23 @@ DH adaptation. Run `tools/native.py generate`, `stage`, `build` or `package`.
 The current Windows workspace uses the sibling `RustCore/development` toolchain,
 temp, cache and build guard. Source `Enter-RustDev.ps1`; set `RUSTUP_TOOLCHAIN=stable`.
 
-This Nightly requires horizon-mixins `ddd9700` plus a small local fix: recognize
-Rust's built-in `recursion_limit` crate attribute as inert. HEAD's handling of
+For the full local three-mod laboratory, pass the existing official Zoom bundle
+as an additional input; the base wrapper supplies DH and this tool supplies IL:
+
+```powershell
+python tools/native.py stage --with E:\Games\Minecraft\RustCore\development\horizon-mods\native\target\zoom-2.0.0.hnmod
+```
+
+An IL/DH-only headless worldgen probe is not a complete three-mod client build.
+
+This Nightly requires horizon-mixins `ddd9700` plus local compatibility fixes:
+recognize Rust's built-in `recursion_limit` crate attribute as inert, and resolve
+concrete `Self` in cancellable constructor HEAD return types (`Result<Self, E>`).
+The latter is required by the unreleased0.4 hydrology branch. HEAD's handling of
 unchanged body macros is now upstream. Unknown procedural attributes remain
 restricted. The patch and its compiled two-mod regression test are in
 `tools/patches/horizon-mixins-f42-compat.patch`; the MIT notice is in
-`third-party/horizon-mixins-LICENSE`. Tested local tool commit: `d4af4d8`.
+`third-party/horizon-mixins-LICENSE`. Tested local tool commit: `46844bc`.
 
 To reproduce that tool, clone `https://github.com/horizon-rust/horizon-mixins` onto E,
 checkout `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`, and apply the bundled patch:
@@ -21,13 +32,20 @@ $env:RUSTUP_TOOLCHAIN = 'stable'
 $env:CARGO_TARGET_DIR = 'E:\Games\Minecraft\RustCore\development\mixins-tool-target'
 git apply E:\Games\Minecraft\immersive-landscapes\tools\patches\horizon-mixins-f42-compat.patch
 cargo test --locked -p horizon-mixins-cli --test integration boundary::crate_recursion_limit_preserves_ordered_head_callbacks -- --test-threads=1
+cargo test --locked -p horizon-mixins-cli --test integration boundary::concrete_self_head_constructors_compile_and_preserve_two_mod_order -- --test-threads=1
 cargo build --release --locked -p horizon-mixins-cli
-Copy-Item "$env:CARGO_TARGET_DIR\release\horizon-mixins.exe" E:\Games\Minecraft\RustCore\development\mixins-tool-f42\bin\horizon-mixins.exe
+Copy-Item "$env:CARGO_TARGET_DIR\release\horizon-mixins.exe" E:\Games\Minecraft\RustCore\development\mixins-tool-hydrology\bin\horizon-mixins.exe
 ```
 
 Run the commands from that fresh tool checkout. Our build wrapper selects this
 binary through `HORIZON_MIXINS_BIN`. The DH build script supports that explicit
 override. This Nightly's unpatched tool cannot index the gameplay library.
+
+The focused constructor fixture and tool Clippy pass. The broader local Windows
+tool run recorded88/99 integration tests passing; remaining failures report
+Linux-only atomic stage replacement, Windows path diagnostics and missing
+`foldhash0.1.5` in offline fixture dependencies. This is not an all-green tool-suite
+claim. Native adapter checks are recorded separately in the candidate status.
 
 This development `.hnmod` contains source, not a dynamically loaded game DLL.
 The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
@@ -35,6 +53,10 @@ documented patched tool / combined build or the tested prebuilt DormLab executab
 Game resources, accounts and worlds are never part of this source package.
 
 ## Current generation path (0.3.1)
+
+This section describes the installed0.3.1 recipe. The unreleased0.4 branch adds
+the hydrology modules, watershed marker, execution-local cache and descriptor7;
+see [its status and limits](hydrology-development.md). It retains saved v4/v5/v6.
 
 `preset.generated.rs`, `preset_adapter.rs`, `prepare.rs` and `list.rs` implement
 the generation path. The rejected custom ChunkGenerator/LevelShape

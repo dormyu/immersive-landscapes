@@ -53,7 +53,9 @@ projects remain references; their Java implementation is not bundled.
 - [horizon-mixins](https://github.com/horizon-rust/horizon-mixins) — levzzz5154 and
   contributors; native integration tooling.
   Our current build uses the original MIT code at `ddd9700` with dormyu's small
-  inert `recursion_limit` attribute fix. Earlier boundary HEAD macro preservation
+  inert `recursion_limit` attribute fix. The unreleased hydrology branch also
+  resolves concrete constructor `Self` in cancellable HEAD results, with an
+  original two-mod regression fixture. Earlier boundary HEAD macro preservation
   is now upstream. The patch, compiled regression test and original MIT notice
   are bundled; see [native build notes](docs/native-build.md).
 - [Distant Horizons](https://gitlab.com/distant-horizons-team/distant-horizons) —
@@ -67,6 +69,12 @@ projects remain references; their Java implementation is not bundled.
 
 Optional preview tooling uses Pillow, under its own license; it is not a runtime
 dependency of the Rust generator.
+
+The original native hydrology candidate uses general priority-flood and bounded
+drainage-domain ideas. Concept references are Barnes, Lehman and Mulla,
+[Priority-Flood](https://doi.org/10.1016/j.cageo.2013.04.024), and Michael K. Davis III,
+[Plate-Local River Generation](https://arxiv.org/abs/2610.00301). Their implementation
+code is not copied into this project; see [candidate scope](docs/hydrology-development.md).
 
 [minecraft-agent-skills](https://github.com/Jahrome907/minecraft-agent-skills),
 by Jahrome907, was consulted for world-generation schema/reference validation.

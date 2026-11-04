@@ -64,6 +64,9 @@ def recipe():
                     "first": original_offset,
                     "second": binary("max", original_offset, -.54)})
     return {
+        # Presence enables the Rust watershed adapter only for this saved
+        # recipe. Its value is an ordinary unused vanilla constant.
+        "data/immersive_landscapes/worldgen/density_function/watershed_v1.json": 1.0,
         "data/immersive_landscapes/worldgen/density_function/range_field.json": ridge,
         "data/immersive_landscapes/worldgen/density_function/valley_profile.json": valley,
         "data/immersive_landscapes/worldgen/density_function/valley_strength.json": erosion_strength,
@@ -88,9 +91,9 @@ def main():
         "description": "Immersive Landscapes: vanilla terrain with coherent ranges and graded valleys, by dormyu",
         "pack_format": 121, "min_format": 121, "max_format": 121}}, indent=2) + "\n", encoding="utf-8", newline="\n")
     metadata = {
-        "schema": 1, "preset": "vanilla-natural-v2", "author": "dormyu",
+        "schema": 1, "preset": "vanilla-natural-v3", "author": "dormyu",
         "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
-        "generation_family": "vanilla-natural", "descriptor_version": 6,
+        "generation_family": "vanilla-natural", "descriptor_version": 7,
         "vanilla_aliases": {"immersive_landscapes:vanilla_offset": "minecraft:overworld/offset",
                             "immersive_landscapes:vanilla_base_3d": "minecraft:overworld/base_3d_noise"},
         "preserves": ["vanilla continents and climate scale", "vanilla height limits and sea level",
@@ -101,8 +104,11 @@ def main():
                     "wider valley profiles in eroded lowlands, narrower mountain passes",
                     "inland river-floor protection, fading out before ocean terrain",
                     "terrain and biome placement consume the same fields",
-                    "base 3D rock-detail amplitude .35 to suppress detached surface masses"],
-        "known_limits": ["Noise valleys are not a simulated drainage graph or validated deltas",
+                    "base 3D rock-detail amplitude .35 to suppress detached surface masses",
+                    "seed-bound coastal watershed graphs and connected graded channels in native Rust",
+                    "shared riverbed and water profiles for actual terrain and distant sampling"],
+        "known_limits": ["Coastal drainage coverage is bounded; not every pre-existing noise valley is converted",
+                         "Delta branches and full inland catchments are not implemented",
                          "Vanilla biome identity and vegetation boundaries remain discrete",
                          "Native near/far surface sampling differences still require checking"],
         "registry_sha256": {name: hashlib.sha256((OUT/name).read_bytes()).hexdigest() for name in sorted(files)},

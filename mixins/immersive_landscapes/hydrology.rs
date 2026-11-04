@@ -1,0 +1,561 @@
+// Seed-bound native adapter. MIT, dormyu. No gameplay-frame hook.
+use super::generator::{LodColumn, ProtoChunk, SurfaceSample};
+use super::immersive_landscapes_watershed::{Config, Land, Profile, Terrain, World};
+use super::terrain::TerrainError;
+use crate::registry::{BlockRegistry, BlockStateId};
+use horizon_core::density::{DensitySampler, SampleError, SamplerContext};
+use horizon_core::{
+    geometry::Axis,
+    noise::{DensityError, DensityVolume},
+};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
+
+static NEXT: AtomicUsize = AtomicUsize::new(1);
+static PIPELINES: OnceLock<Mutex<HashMap<usize, Weak<Atlas>>>> = OnceLock::new();
+
+#[derive(Debug)]
+struct NativeTerrain {
+    id: usize,
+    preliminary: Arc<dyn DensitySampler>,
+    continents: Arc<dyn DensitySampler>,
+    failed: AtomicBool,
+}
+
+thread_local! {
+    static DEM: RefCell<(usize, SamplerContext)> = RefCell::new((0, SamplerContext::cached()));
+    static BUILD: RefCell<Vec<BuildFrame>> = const { RefCell::new(Vec::new()) };
+    static PROFILES: RefCell<Vec<CachedProfile>> = RefCell::new(vec![CachedProfile::default(); 256]);
+}
+
+impl Terrain for NativeTerrain {
+    fn land(&self, x: i32, z: i32) -> Land {
+        DEM.with_borrow_mut(|state| {
+            if state.0 != self.id { *state = (self.id, SamplerContext::cached()); }
+            state.1.reset();
+            let values = self.preliminary.sample_value(&mut state.1, [x, 0, z])
+                .and_then(|height| {
+                    state.1.reset();
+                    self.continents.sample_value(&mut state.1, [x, 0, z]).map(|c| (height, c))
+                });
+            match values {
+                Ok((h, c)) if h.is_finite() && c.is_finite() => Land {
+                    height: f64::from(h), ocean: h <= 63.0 && c < -0.08 },
+                _ => {
+                    if !self.failed.swap(true, Ordering::Relaxed) {
+                        log::error!("Immersive Landscapes: hydrology's native terrain sampler failed; no invented coastal outlet will be used");
+                    }
+                    Land { height: 128.0, ocean: false }
+                }
+            }
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct Atlas {
+    id: usize,
+    pub seed: i64,
+    pub cache: Option<PathBuf>,
+    world: World<NativeTerrain>,
+}
+
+#[derive(Clone, Copy, Default)]
+struct CachedProfile {
+    atlas: usize,
+    x: i32,
+    z: i32,
+    profile: Option<Profile>,
+}
+
+impl Atlas {
+    fn profile(&self, x: i32, z: i32) -> Option<Profile> {
+        PROFILES.with_borrow_mut(|slots| {
+            let hash = (x as u32).wrapping_mul(0x9e3779b9)
+                ^ (z as u32).wrapping_mul(0x85ebca6b).rotate_left(13);
+            let slot = (hash ^ (hash >> 16)) as usize % slots.len();
+            let old = slots[slot];
+            if old.atlas == self.id && old.x == x && old.z == z {
+                return old.profile;
+            }
+            let profile = self.world.sample(x, z);
+            slots[slot] = CachedProfile {
+                atlas: self.id,
+                x,
+                z,
+                profile,
+            };
+            profile
+        })
+    }
+}
+
+struct BuildFrame {
+    token: usize,
+    seed: i64,
+    reentry: bool,
+    cache: Option<PathBuf>,
+    cache_identity: u64,
+    atlas: Option<Arc<Atlas>>,
+}
+
+pub struct BuildGuard {
+    depth: usize,
+    token: usize,
+}
+impl Drop for BuildGuard {
+    fn drop(&mut self) {
+        BUILD.with_borrow_mut(|stack| {
+            assert_eq!(stack.len(), self.depth);
+            assert_eq!(stack.last().map(|f| f.token), Some(self.token));
+            stack.pop();
+        });
+    }
+}
+
+pub fn build_reentry(token: usize) -> bool {
+    BUILD.with_borrow_mut(|stack| {
+        if let Some(frame) = stack.last_mut()
+            && frame.token == token
+            && frame.reentry
+        {
+            frame.reentry = false;
+            true
+        } else {
+            false
+        }
+    })
+}
+
+pub fn begin_build(token: usize, seed: i64, cache_identity: u64) -> BuildGuard {
+    // The server's worldgen data cannot choose a client's filesystem path.
+    let cache = std::env::var_os("HORIZON_IL_CACHE_DIR")
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::current_dir()
+                .ok()
+                .map(|p| p.join("horizon-mods/.horizon-mod-data/immersive_landscapes/hydrology-v1"))
+        })
+        .filter(|p| p.is_absolute());
+    let depth = BUILD.with_borrow_mut(|stack| {
+        stack.push(BuildFrame {
+            token,
+            seed,
+            reentry: true,
+            cache,
+            cache_identity,
+            atlas: None,
+        });
+        stack.len()
+    });
+    BuildGuard { depth, token }
+}
+
+pub fn building() -> bool {
+    BUILD.with_borrow(|stack| !stack.is_empty())
+}
+
+pub fn bind_pipeline(pipeline: usize) {
+    let atlas = BUILD.with_borrow(|stack| stack.last().and_then(|f| f.atlas.clone()));
+    if let Some(atlas) = atlas {
+        let mut map = PIPELINES
+            .get_or_init(|| Mutex::new(HashMap::new()))
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        map.retain(|_, weak| weak.strong_count() > 0);
+        map.insert(pipeline, Arc::downgrade(&atlas));
+    }
+}
+
+pub fn for_pipeline(pipeline: usize) -> Option<Arc<Atlas>> {
+    PIPELINES
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get(&pipeline)
+        .and_then(Weak::upgrade)
+}
+
+/// Called from the native router's return hook, before aquifers/material rules.
+pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
+    let atlas = BUILD.with_borrow_mut(|stack| {
+        let frame = stack.last_mut()?;
+        if let Some(atlas) = &frame.atlas {
+            return Some(atlas.clone());
+        }
+        let id = NEXT.fetch_add(1, Ordering::Relaxed);
+        let terrain = NativeTerrain {
+            id,
+            preliminary: samplers[6].clone(),
+            continents: samplers[2].clone(),
+            failed: AtomicBool::new(false),
+        };
+        let mut world = World::new(terrain, frame.seed as u64, Config::default());
+        if let Some(directory) = &frame.cache {
+            world = world.with_dem_cache(directory.clone(), frame.cache_identity);
+        }
+        let atlas = Arc::new(Atlas {
+            id,
+            seed: frame.seed,
+            cache: frame.cache.clone(),
+            world,
+        });
+        frame.atlas = Some(atlas.clone());
+        log::info!(
+            "Immersive Landscapes: bound hydrology-v1 to native terrain for seed {}",
+            frame.seed
+        );
+        Some(atlas)
+    });
+    let Some(atlas) = atlas else {
+        return;
+    };
+    for field in [4, 5, 6, 7] {
+        samplers[field] = Arc::new(HydroSampler {
+            base: samplers[field].clone(),
+            field,
+            atlas: atlas.clone(),
+        });
+    }
+}
+
+#[derive(Debug)]
+struct HydroSampler {
+    base: Arc<dyn DensitySampler>,
+    field: usize,
+    atlas: Arc<Atlas>,
+}
+
+fn river_density(base: f32, p: Profile, y: i32) -> f32 {
+    if p.lake {
+        return base;
+    }
+    let yy = f64::from(y);
+    let carve = ((p.bed - yy) * 0.2) as f32;
+    let mut density = base.min(carve);
+    if yy <= p.bed && yy > p.bed - 4.0 {
+        let floor = ((p.bed - yy) * 0.25).min((yy - p.bed + 4.0) * 0.5) as f32;
+        density = density.max(floor);
+    }
+    if yy < p.bed - 4.0 {
+        density = base;
+    }
+    base + (density - base) * p.strength as f32
+}
+
+impl DensitySampler for HydroSampler {
+    fn sample_value(
+        &self,
+        context: &mut SamplerContext,
+        [x, y, z]: [i32; 3],
+    ) -> Result<f32, SampleError> {
+        let Some(p) = self.atlas.profile(x, z) else {
+            return self.base.sample_value(context, [x, y, z]);
+        };
+        match self.field {
+            // Climate depth follows the carved surface instead of classifying
+            // the new riverbank as an underground biome.
+            4 => {
+                let shift = (p.raw - p.bed).round().clamp(-128.0, 128.0) as i32;
+                self.base
+                    .sample_value(context, [x, y.saturating_add(shift), z])
+            }
+            // The biome classifier sees a gradual riparian zone. Underlying
+            // terrain nodes were compiled before this sampler was wrapped.
+            5 => {
+                let base = self.base.sample_value(context, [x, y, z])?;
+                Ok(base * (1.0 - p.strength as f32))
+            }
+            6 => Ok(p.bed as f32),
+            7 => {
+                let base = self.base.sample_value(context, [x, y, z])?;
+                // A four-block liner keeps a river above a cave from hanging
+                // in air; deeper native caverns and aquifers remain intact.
+                Ok(river_density(base, p, y))
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn sample_volume(
+        &self,
+        context: &mut SamplerContext,
+        buffer: &mut [f32],
+        volume: DensityVolume,
+    ) -> Result<(), SampleError> {
+        if buffer.len() < volume.size() {
+            return Err(DensityError::BufferTooShort.into());
+        }
+        // Keep the native vectorized/cache-aware path, including its floating
+        // point behavior, throughout unchanged terrain. Profile lookup is 2D.
+        self.base.sample_volume(context, buffer, volume)?;
+        let [sx, sy, sz] = volume.sizes();
+        for iz in 0..sz {
+            let z = volume.block(Axis::Z, iz).expect("validated volume");
+            for ix in 0..sx {
+                let x = volume.block(Axis::X, ix).expect("validated volume");
+                let Some(p) = self.atlas.profile(x, z) else {
+                    continue;
+                };
+                for iy in 0..sy {
+                    let y = volume.block(Axis::Y, iy).expect("validated volume");
+                    let value = &mut buffer[(iz * sx + ix) * sy + iy];
+                    *value = match self.field {
+                        4 => {
+                            let shift = (p.raw - p.bed).round().clamp(-128., 128.) as i32;
+                            self.base
+                                .sample_value(context, [x, y.saturating_add(shift), z])?
+                        }
+                        5 => *value * (1. - p.strength as f32),
+                        6 => p.bed as f32,
+                        7 => river_density(*value, p, y),
+                        _ => unreachable!(),
+                    };
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Paint {
+    air: BlockStateId,
+    stone: BlockStateId,
+    water: BlockStateId,
+    gravel: BlockStateId,
+    sand: BlockStateId,
+    clay: BlockStateId,
+}
+impl Paint {
+    fn new(registry: &BlockRegistry) -> Self {
+        Self {
+            air: registry
+                .default_state("minecraft:air")
+                .expect("native air state"),
+            stone: registry
+                .default_state("minecraft:stone")
+                .expect("native stone state"),
+            water: registry
+                .default_state("minecraft:water")
+                .expect("native water state"),
+            gravel: registry
+                .default_state("minecraft:gravel")
+                .expect("native gravel state"),
+            sand: registry
+                .default_state("minecraft:sand")
+                .expect("native sand state"),
+            clay: registry
+                .default_state("minecraft:clay")
+                .expect("native clay state"),
+        }
+    }
+    fn bed(self, x: i32, z: i32, seed: i64) -> BlockStateId {
+        let h = (x.div_euclid(4) as u64).wrapping_mul(0x9e3779b97f4a7c15)
+            ^ (z.div_euclid(4) as u64).wrapping_mul(0xd1b54a32d192ed03)
+            ^ seed as u64;
+        match (h ^ (h >> 29)) % 10 {
+            0 => self.clay,
+            1..=3 => self.sand,
+            _ => self.gravel,
+        }
+    }
+}
+
+pub fn fill_proto(
+    proto: &mut ProtoChunk,
+    atlas: &Atlas,
+    registry: &BlockRegistry,
+) -> Result<(), TerrainError> {
+    let paint = Paint::new(registry);
+    let pos = proto.position();
+    let min = proto.terrain.min_y();
+    let max = min + proto.terrain.height();
+    for z in 0..16 {
+        for x in 0..16 {
+            let wx = pos.x * 16 + x;
+            let wz = pos.z * 16 + z;
+            let Some(p) = atlas.profile(wx, wz) else {
+                continue;
+            };
+            let water = (p.water.ceil() as i32).clamp(min, max);
+            let strong = p.strength >= 0.7 && !p.lake;
+            let floor = if strong {
+                p.bed.ceil() as i32
+            } else {
+                proto.surface_height(x, z)
+            }
+            .clamp(min + 1, max);
+            if water <= floor {
+                continue;
+            }
+            if strong {
+                // Native density cells are wider than the smallest streams.
+                // Finish the cut per block, removing any interpolated roof and
+                // backing falling sediment with the same four-block liner.
+                let old_top = proto.surface_height(x, z).clamp(min, max);
+                for y in water..old_top {
+                    proto.terrain.set_block_worldgen(x, y, z, paint.air)?;
+                }
+                for y in (floor - 4).max(min)..floor - 1 {
+                    proto.terrain.set_block_worldgen(x, y, z, paint.stone)?;
+                }
+                proto
+                    .terrain
+                    .set_block_worldgen(x, floor - 1, z, paint.bed(wx, wz, atlas.seed))?;
+            }
+            for y in floor..water {
+                proto.terrain.set_block_worldgen(x, y, z, paint.water)?;
+            }
+            proto.terrain.mark_postprocessing(x, water - 1, z);
+        }
+    }
+    Ok(())
+}
+
+pub fn fill_surface(
+    surface: &mut Option<SurfaceSample>,
+    atlas: &Atlas,
+    registry: &BlockRegistry,
+    x: i32,
+    z: i32,
+) {
+    let Some(sample) = surface else {
+        return;
+    };
+    let Some(p) = atlas.profile(x, z) else {
+        return;
+    };
+    let paint = Paint::new(registry);
+    let strong = p.strength >= 0.7 && !p.lake;
+    let floor = if strong {
+        p.bed.ceil() as i32
+    } else {
+        sample.height
+    };
+    let water = p.water.ceil() as i32;
+    if water <= floor {
+        return;
+    }
+    if strong {
+        sample.height = floor;
+        sample.state = paint.bed(x, z, atlas.seed);
+    }
+    sample.water = Some((water, paint.water));
+}
+
+fn replace_run(spans: &mut Vec<(i32, i32, BlockStateId)>, lo: i32, hi: i32, state: BlockStateId) {
+    let mut out = Vec::with_capacity(spans.len() + 2);
+    for &(a, b, block) in spans.iter() {
+        if b <= lo || a >= hi {
+            out.push((a, b, block));
+        } else {
+            if a < lo {
+                out.push((a, lo, block));
+            }
+            if b > hi {
+                out.push((hi, b, block));
+            }
+        }
+    }
+    out.push((lo, hi, state));
+    out.sort_unstable_by_key(|run| run.0);
+    *spans = out;
+}
+
+pub fn fill_column(
+    column: &mut LodColumn,
+    atlas: &Atlas,
+    registry: &BlockRegistry,
+    x: i32,
+    z: i32,
+) {
+    let Some(p) = atlas.profile(x, z) else {
+        return;
+    };
+    let Some(sample) = &column.0 else {
+        return;
+    };
+    let paint = Paint::new(registry);
+    let strong = p.strength >= 0.7 && !p.lake;
+    let floor = if strong {
+        p.bed.ceil() as i32
+    } else {
+        sample.height
+    };
+    let water = p.water.ceil() as i32;
+    if water <= floor {
+        return;
+    }
+    if strong {
+        column.1.retain_mut(|run| {
+            run.1 = run.1.min(water);
+            run.0 < run.1
+        });
+        replace_run(&mut column.1, floor - 4, floor - 1, paint.stone);
+        replace_run(&mut column.1, floor - 1, floor, paint.bed(x, z, atlas.seed));
+    }
+    replace_run(&mut column.1, floor, water, paint.water);
+    fill_surface(&mut column.0, atlas, registry, x, z);
+}
+
+pub fn fill_grid(
+    columns: &mut [LodColumn],
+    atlas: &Atlas,
+    registry: &BlockRegistry,
+    x: i32,
+    z: i32,
+    width: i32,
+    side: usize,
+) {
+    for (i, column) in columns.iter_mut().enumerate() {
+        fill_column(
+            column,
+            atlas,
+            registry,
+            x + (i % side) as i32 * width,
+            z + (i / side) as i32 * width,
+        );
+    }
+}
+
+pub fn live_atlases() -> Vec<Arc<Atlas>> {
+    let mut atlases: Vec<_> = PIPELINES
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .values()
+        .filter_map(Weak::upgrade)
+        .collect();
+    atlases.sort_unstable_by_key(|a| a.id);
+    atlases.dedup_by_key(|a| a.id);
+    atlases
+}
+
+impl Atlas {
+    pub fn profile_at(&self, x: i32, z: i32) -> Option<Profile> {
+        self.profile(x, z)
+    }
+
+    pub fn cache_counts(&self) -> (usize, usize) {
+        self.world.cache.as_ref().map_or((0, 0), |c| {
+            (
+                c.hits.load(Ordering::Relaxed),
+                c.misses.load(Ordering::Relaxed),
+            )
+        })
+    }
+
+    pub fn inspect_coast(
+        &self,
+        x: i32,
+        z: i32,
+    ) -> Option<Arc<super::immersive_landscapes_watershed::Basin>> {
+        self.world
+            .coast(super::immersive_landscapes_watershed::Key(x, z))
+            .map(|c| self.world.basin(c))
+    }
+}

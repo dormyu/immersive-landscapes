@@ -1,8 +1,8 @@
 {
   "horizon_revision": "f42ef42ef6ceccb3c6a20bea2481d87949a51c81",
   "horizon_mixins_revision": "ddd9700b21997c95d95ac6ee5ecafe3830cf622a",
-  "generator_version": 5,
+  "generator_version": 7,
   "horizon_mixins_patch": "tools/patches/horizon-mixins-f42-compat.patch",
-  "horizon_mixins_patch_sha256": "274600e5e6abf11eba8f5b7e5e5108f8c9cd93134a3c7bb3c23c645c2657076d",
-  "horizon_mixins_local_commit": "d4af4d82120dd9d1600f27cbebdcfa4fb6a224c8"
+  "horizon_mixins_patch_sha256": "82360144f5fe372fce32e47113090eb6b78caca00ffece4e6c159b800d4e58d8",
+  "horizon_mixins_local_commit": "46844bc738a84168cab26f5306d580bdcb472ba8"
 }

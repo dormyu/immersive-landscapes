@@ -1,4 +1,4 @@
-name: Rust core
+name: Rust checks
 on: [push, pull_request]
 permissions:
   contents: read
@@ -12,7 +12,7 @@ jobs:
           - os: windows-latest
             toolchain: stable
           - os: ubuntu-latest
-            toolchain: '1.85.0'
+            toolchain: '1.88.0'
     runs-on: ${{ matrix.os }}
     env:
       CARGO_BUILD_JOBS: 1

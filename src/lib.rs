@@ -1,7 +1,8 @@
-//! Deterministic regional terrain and drainage prototype by dormyu.
+//! Historical terrain research helpers for Immersive Landscapes, by dormyu.
 //!
-//! This is a generator research core, not yet a drop-in Horizon mod. Drainage is
-//! compiled once per region; it is not recomputed per chunk or render frame.
+//! The playable Horizon mod lives in `mixins/immersive_landscapes`. These older
+//! height-field experiments do not drive its installed vanilla-based terrain.
+//! The actual native watershed module is also exercised by the integration tests.
 pub mod drainage;
 pub mod sampling;
 pub mod terrain;
