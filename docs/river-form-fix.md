@@ -17,7 +17,7 @@ deeper than8 blocks2303→14; small land components235→14 versus11 in the unch
 foundation. These are scoped diagnostics, not final client or visual acceptance.
 
 Channels use shared curved junctions, lowland meanders, variable width, asymmetric
-banks, rounded cross-sections and shallow headwater starts.29 calculation tests
+banks, rounded cross-sections and shallow headwater starts.32 calculation tests
 and Clippy pass. Final client images, network/save and performance checks are pending.
 
 The first candidate's actual-game review also found raised rectangular water at
@@ -36,3 +36,7 @@ Raw DEM cache identity excludes these shape-only parameters; drainage rebuilds.
 
 Full inland catchments/deltas/ecotones and remaining DH artifacts are separate
 open work. This candidate is not yet installed. Author dormyu, own code MIT.
+
+A final native4x8-lattice refinement classifies the receiving sea inside a16-block
+drainage cell. Only active water profiles use this bounded tile cache; it prevents
+coarse coastal interpolation from raising native sea columns or far water.

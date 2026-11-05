@@ -200,6 +200,37 @@ impl Config {
     }
 }
 
+/// Receiving sea floors on the native 4x8 density lattice (Z, X, Y layout).
+/// A 16-block drainage DEM is insufficient to classify a narrow rocky coast.
+pub fn native_sea_floors(samples: &[f32; 196]) -> [Option<i32>; 16] {
+    let mut floors = [None; 16];
+    for (cell, floor) in floors.iter_mut().enumerate() {
+        let tx = (cell % 4) as f32 / 4.;
+        let tz = (cell / 4) as f32 / 4.;
+        let mut column = [0.; 49];
+        for (y, value) in column.iter_mut().enumerate() {
+            let a = samples[y] + (samples[49 + y] - samples[y]) * tx;
+            let b = samples[98 + y] + (samples[147 + y] - samples[98 + y]) * tx;
+            *value = a + (b - a) * tz;
+        }
+        let at63 = column[15] + (column[16] - column[15]) * 0.875;
+        if column.iter().any(|d| !d.is_finite())
+            || at63 > 0.
+            || column[16..].iter().any(|&d| d > 0.)
+        {
+            continue;
+        }
+        let height = if let Some(i) = column.iter().rposition(|&d| d > 0.) {
+            let t = column[i] / (column[i] - column[i + 1]).max(f32::EPSILON);
+            (-64. + i as f32 * 8. + t * 8.).ceil() as i32
+        } else {
+            -63
+        };
+        *floor = Some(height.clamp(-63, 62));
+    }
+    floors
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key(pub i32, pub i32);
 
@@ -1260,6 +1291,32 @@ mod tests {
         b.drains_ocean.fill(true);
         b.ocean.fill(false);
         b
+    }
+
+    fn density_plane(left: f32, right: f32) -> [f32; 196] {
+        std::array::from_fn(|i| {
+            let x = (i / 49) % 2;
+            let y = -64. + (i % 49) as f32 * 8.;
+            (if x == 0 { left } else { right }) - y
+        })
+    }
+
+    #[test]
+    fn receiving_sea_refinement_preserves_actual_underwater_depth() {
+        assert_eq!(native_sea_floors(&density_plane(56., 56.)), [Some(56); 16]);
+    }
+
+    #[test]
+    fn receiving_sea_refinement_does_not_clamp_an_inland_river() {
+        assert_eq!(native_sea_floors(&density_plane(70., 70.)), [None; 16]);
+    }
+
+    #[test]
+    fn receiving_sea_refinement_resolves_a_coast_inside_one_drainage_cell() {
+        let floors = native_sea_floors(&density_plane(52., 76.));
+        for row in floors.as_chunks::<4>().0 {
+            assert_eq!(*row, [Some(52), Some(58), None, None]);
+        }
     }
 
     #[test]

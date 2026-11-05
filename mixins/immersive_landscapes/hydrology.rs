@@ -1,7 +1,9 @@
 // Seed-bound native adapter. MIT, dormyu. No gameplay-frame hook.
 use super::generator::{LodColumn, ProtoChunk, SurfaceSample};
 use super::immersive_landscapes_spans::replace_run;
-use super::immersive_landscapes_watershed::{Config, Land, Profile, Terrain, World};
+use super::immersive_landscapes_watershed::{
+    Config, Land, Profile, Terrain, World, native_sea_floors,
+};
 use super::terrain::TerrainError;
 use crate::registry::{BlockRegistry, BlockStateId};
 use horizon_core::density::{DensitySampler, SampleError, SamplerContext};
@@ -27,12 +29,60 @@ struct NativeTerrain {
     natural: bool,
     failed: AtomicBool,
     samples: Mutex<TerrainSamples>,
+    sea_tiles: Mutex<SeaTiles>,
 }
 
 #[derive(Debug, Default)]
 struct TerrainSamples {
     values: HashMap<(i32, i32), Land>,
     order: VecDeque<(i32, i32)>,
+}
+
+#[derive(Debug, Default)]
+struct SeaTiles {
+    values: HashMap<(i32, i32), [Option<i32>; 16]>,
+    order: VecDeque<(i32, i32)>,
+}
+
+impl NativeTerrain {
+    fn receiving_sea_floor(&self, x: i32, z: i32) -> Option<i32> {
+        let key = (x.div_euclid(4), z.div_euclid(4));
+        let cell = (z.rem_euclid(4) * 4 + x.rem_euclid(4)) as usize;
+        {
+            let cache = self.sea_tiles.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(floors) = cache.values.get(&key) {
+                return floors[cell];
+            }
+        }
+        let floors = DEM.with_borrow_mut(|state| {
+            if state.0 != self.id {
+                *state = (self.id, SamplerContext::cached());
+            }
+            state.1.reset();
+            let volume = DensityVolume::new([2, 49, 2], [key.0 * 4, -64, key.1 * 4], [4, 8, 4])
+                .expect("fixed native sea lattice");
+            let mut samples = [0.; 196];
+            if self
+                .density
+                .sample_volume(&mut state.1, &mut samples, volume)
+                .is_ok()
+            {
+                native_sea_floors(&samples)
+            } else {
+                [None; 16]
+            }
+        });
+        let mut cache = self.sea_tiles.lock().unwrap_or_else(|e| e.into_inner());
+        if cache.values.insert(key, floors).is_none() {
+            cache.order.push_back(key);
+            if cache.values.len() > 8192
+                && let Some(old) = cache.order.pop_front()
+            {
+                cache.values.remove(&old);
+            }
+        }
+        floors[cell]
+    }
 }
 
 thread_local! {
@@ -126,7 +176,20 @@ impl Atlas {
             if old.atlas == self.id && old.x == x && old.z == z {
                 return old.profile;
             }
-            let profile = self.world.sample(x, z);
+            let mut profile = self.world.sample(x, z);
+            if self.world.config.natural
+                && let Some(p) = &mut profile
+                && p.water > self.world.config.sea
+                && let Some(floor) = self.world.terrain.receiving_sea_floor(x, z)
+            {
+                // Refine only an active wet profile, not every distant column.
+                // The native lattice keeps a coarse land cell from raising sea.
+                p.raw = f64::from(floor);
+                p.bed = f64::from(floor);
+                p.water = self.world.config.sea;
+                p.strength = 1.;
+                p.lake = false;
+            }
             slots[slot] = CachedProfile {
                 atlas: self.id,
                 x,
@@ -242,6 +305,7 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
             natural: frame.config.natural,
             failed: AtomicBool::new(false),
             samples: Mutex::new(TerrainSamples::default()),
+            sea_tiles: Mutex::new(SeaTiles::default()),
         };
         let mut world = World::new(terrain, frame.seed as u64, frame.config);
         if let Some(directory) = &frame.cache {
