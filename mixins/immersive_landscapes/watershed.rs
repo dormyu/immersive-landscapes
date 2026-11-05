@@ -230,6 +230,20 @@ pub struct Profile {
     pub lake: bool,
 }
 
+impl Profile {
+    pub fn voxel_floor(self, natural: bool) -> i32 {
+        let floor = self.bed.ceil() as i32;
+        if natural && !self.lake && self.bed < self.water {
+            // A wet continuous cross-section can be less than one block deep.
+            // Rasterize it consistently in chunks AND far columns, rather than
+            // rounding away the final water voxel at a shallow headwater.
+            floor.min(self.water.ceil() as i32 - 1)
+        } else {
+            floor
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Basin {
     pub seed: u64,
@@ -1172,6 +1186,20 @@ mod tests {
             "sea-level rivers were left on the straight DEM lattice"
         );
     }
+
+    #[test]
+    fn wet_sub_block_cross_sections_keep_a_water_voxel_without_changing_v7() {
+        let p = Profile {
+            bed: 74.02634862624755,
+            water: 74.91644262735065,
+            raw: 76.,
+            strength: 1.,
+            lake: false,
+        };
+        assert_eq!(p.voxel_floor(false), 75);
+        assert_eq!(p.voxel_floor(true), 74);
+        assert!(p.voxel_floor(true) < p.water.ceil() as i32);
+    }
     #[test]
     fn flood_routes_conserve_and_descend_to_receiving_water() {
         let c = Coast {
@@ -1338,6 +1366,10 @@ mod tests {
                         "dry boundary centreline: {p:?} {profile:?}"
                     );
                     assert!(profile.bed < profile.water);
+                    assert!(
+                        profile.voxel_floor(true) < profile.water.ceil() as i32,
+                        "a wet centreline disappeared when quantized into blocks"
+                    );
                     count += 1;
                 }
             }

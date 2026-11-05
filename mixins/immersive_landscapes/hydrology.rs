@@ -412,7 +412,7 @@ pub fn fill_proto(
             let water = (p.water.ceil() as i32).clamp(min, max);
             let strong = p.strength >= 0.7 && !p.lake;
             let floor = if strong {
-                p.bed.ceil() as i32
+                p.voxel_floor(atlas.world.config.natural)
             } else {
                 proto.surface_height(x, z)
             }
@@ -460,7 +460,7 @@ pub fn fill_surface(
     let paint = Paint::new(registry);
     let strong = p.strength >= 0.7 && !p.lake;
     let floor = if strong {
-        p.bed.ceil() as i32
+        p.voxel_floor(atlas.world.config.natural)
     } else {
         sample.height
     };
@@ -491,7 +491,7 @@ pub fn fill_column(
     let paint = Paint::new(registry);
     let strong = p.strength >= 0.7 && !p.lake;
     let floor = if strong {
-        p.bed.ceil() as i32
+        p.voxel_floor(atlas.world.config.natural)
     } else {
         sample.height
     };
