@@ -1,19 +1,19 @@
 # Immersive Landscapes implementation
 
-## Current verified delivery — DHdormyu.7 / IL0.3.1
+## Current verified delivery — IL0.4.0 / DHdormyu.7
 
-Working mod, active development. DormLab: IL0.3.1/v2/descriptor6 + DHdormyu.7
-and unchanged official Zoom2.0.0, Horizon f42ef42, runtime7292006b.
-Bounded block detail at the near boundary and native grass/leaf tint parity;
-prior water/GPU/mask/stale-worker fixes retained. Terrain recipes/cache format unchanged.
-26 core tests/Clippy, UI/save/old recipes, two Rust clients and installed Prism pass.
-All 5127 original save files and preferences preserved, control off.
-Short warmed near32/DH128 Medium1080p/cap120: flight119.53FPS,
-P999.41ms/max18.43ms; scoped, not heavy-pack acceptance.
-The extra boundary band costs geometry; Low/Lowest retain the original plan.
-Remaining vegetation/detail transitions, hydrology/ecotones and long/heavy-pack routes open.
-Preserve personal cap260/VSync off/near32; do not close Teams.
-QA: RustCore/qa/dh-boundary-detail-2026-11-04; rollback before-boundary-detail-install.
+Working mod, active development. DormLab IL0.4.0/v3/descriptor7 + unchanged DH7
+and official Zoom2.0.0, Horizon f42ef42, runtimeadd9b6a5. Bounded coastal drainage,
+shared near/far beds/water/liners and persistent seed/recipe-bound DEM cache.
+22 calculation tests/Clippy, three native seed probes and3093 wet centreline
+points, menu/save/old v4-v5-v6 recipes, two Rust clients and installed Prism pass.
+All 5127 owner save files/preferences preserved, control off; Teams untouched.
+Short warmed near32/DH128 Medium1080p/cap120 flight119.91FPS,
+P998.85ms/max13.72ms; not heavy-pack acceptance.
+Full inland catchments, deltas, ecotones and owner visual acceptance remain open.
+Preserve personal maxFps260 (unlimited)/VSync off/near32. New hydrology needs a NEW IL world;
+old recipes are not migrated. No survival/classes or framework work in this scope.
+QA: RustCore/qa/hydrology-v3-2026-11-04; rollback before-hydrology-install.
 Read native-build.json for full hashes. Older version/profile notes below are historical.
 
 - Deliver a playable **Horizon native mod**, not a replacement engine or a CLI-only

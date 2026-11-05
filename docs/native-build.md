@@ -17,7 +17,7 @@ An IL/DH-only headless worldgen probe is not a complete three-mod client build.
 This Nightly requires horizon-mixins `ddd9700` plus local compatibility fixes:
 recognize Rust's built-in `recursion_limit` crate attribute as inert, and resolve
 concrete `Self` in cancellable constructor HEAD return types (`Result<Self, E>`).
-The latter is required by the unreleased0.4 hydrology branch. HEAD's handling of
+The latter is required by the 0.4 native hydrology adapter. HEAD's handling of
 unchanged body macros is now upstream. Unknown procedural attributes remain
 restricted. The patch and its compiled two-mod regression test are in
 `tools/patches/horizon-mixins-f42-compat.patch`; the MIT notice is in
@@ -52,9 +52,16 @@ The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
 documented patched tool / combined build or the tested prebuilt DormLab executable.
 Game resources, accounts and worlds are never part of this source package.
 
-## Current generation path (0.3.1)
+## Native hydrology0.4.0
 
-This section describes the installed0.3.1 recipe. The unreleased0.4 branch adds
+The current adapter adds watershed.rs, hydrology.rs, span_ops.rs and nongeneric
+worker/build hooks. New worlds use descriptor7/v3 with eight density JSON files
+(seven terrain overrides plus a watershed marker). See [implementation](hydrology-development.md)
+and [checked scope](validation-0.4.0.md). Saved v4/v5/v6 retain their recipes.
+
+## Historical density foundation (0.3.1)
+
+This section describes the preserved0.3.1 foundation. The0.4 adapter adds
 the hydrology modules, watershed marker, execution-local cache and descriptor7;
 see [its status and limits](hydrology-development.md). It retains saved v4/v5/v6.
 

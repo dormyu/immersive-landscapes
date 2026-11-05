@@ -1,3 +1,6 @@
+Current0.4.0 adds [native coastal hydrology](hydrology-development.md) and descriptor7
+over this preserved density foundation. [Current validation](validation-0.4.0.md).
+
 # Vanilla-based generation — 0.3.1
 
 The owner asked for ordinary Minecraft terrain governed by natural rules.
