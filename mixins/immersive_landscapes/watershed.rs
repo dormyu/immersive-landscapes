@@ -165,6 +165,12 @@ pub struct Config {
     pub margin: f64,
     pub min_cells: f64,
     pub basin_cache: usize,
+    pub natural: bool,
+    pub meander_amplitude: f64,
+    pub meander_scale: f64,
+    pub width_scale: f64,
+    pub depth_scale: f64,
+    pub bank_scale: f64,
 }
 
 impl Default for Config {
@@ -177,6 +183,12 @@ impl Default for Config {
             margin: 24.,
             min_cells: 8.,
             basin_cache: 8,
+            natural: true,
+            meander_amplitude: 14.,
+            meander_scale: 96.,
+            width_scale: 1.,
+            depth_scale: 1.,
+            bank_scale: 3.,
         }
     }
 }
@@ -220,6 +232,7 @@ pub struct Profile {
 
 #[derive(Debug)]
 pub struct Basin {
+    pub seed: u64,
     pub coast: Coast,
     pub side: usize,
     pub config: Config,
@@ -288,6 +301,29 @@ fn hash(seed: u64, key: Key) -> u64 {
     a ^ (a >> 31)
 }
 
+fn noise(seed: u64, p: [f64; 2], scale: f64) -> f64 {
+    let x = p[0] / scale;
+    let z = p[1] / scale;
+    let ix = x.floor() as i32;
+    let iz = z.floor() as i32;
+    let t = smooth(x - x.floor());
+    let u = smooth(z - z.floor());
+    let at = |dx, dz| {
+        (hash(seed, Key(ix + dx, iz + dz)) >> 11) as f64 / ((1_u64 << 53) - 1) as f64 * 2. - 1.
+    };
+    (at(0, 0) * (1. - t) + at(1, 0) * t) * (1. - u) + (at(0, 1) * (1. - t) + at(1, 1) * t) * u
+}
+
+fn bezier(points: [[f64; 2]; 4], t: f64) -> [f64; 2] {
+    let u = 1. - t;
+    [0, 1].map(|axis| {
+        u * u * u * points[0][axis]
+            + 3. * u * u * t * points[1][axis]
+            + 3. * u * t * t * points[2][axis]
+            + t * t * t * points[3][axis]
+    })
+}
+
 fn nearest(point: [f64; 2], roots: &[Coast]) -> Option<(Coast, f64, f64)> {
     let mut best: Option<(Coast, f64)> = None;
     let mut second = f64::INFINITY;
@@ -322,6 +358,7 @@ impl Basin {
         let n = (config.radius * 2 / config.step + 1) as usize;
         let count = n * n;
         let mut out = Self {
+            seed,
             coast,
             side: n,
             config,
@@ -358,12 +395,13 @@ impl Basin {
             out.ocean[i] = land.ocean && land.height <= config.sea;
             if let Some((owner, d, other)) = nearest(p, roots) {
                 let (edge_fade, radial_fade) = config.fades();
+                let curve_margin = if config.natural { 2. } else { 0. };
                 // Publish drainage only inside the fully carved core. Its
                 // outer bank may feather, but its wet centreline must not fade
                 // into solid terrain before it reaches receiving water.
                 out.active[i] = owner.key == coast.key
-                    && d < f64::from(config.radius) - radial_fade
-                    && other - d > config.margin + edge_fade;
+                    && d < f64::from(config.radius) - radial_fade - curve_margin
+                    && other - d > config.margin + edge_fade + curve_margin * 2.;
             }
         }
         let mut queue = BinaryHeap::new();
@@ -486,6 +524,9 @@ impl Basin {
                 mouth: out.ocean[j],
             });
         }
+        if config.natural {
+            out.naturalize(roots);
+        }
         out.index();
         out
     }
@@ -517,11 +558,146 @@ impl Basin {
         (at(0, 0) * (1. - t) + at(1, 0) * t) * (1. - u) + (at(0, 1) * (1. - t) + at(1, 1) * t) * u
     }
 
+    fn naturalize(&mut self, roots: &[Coast]) {
+        let count = self.raw.len();
+        let mut upstream = vec![None; count];
+        for (i, parent) in self.parent.iter().enumerate() {
+            if let Some(j) = *parent
+                && upstream[j].is_none_or(|old| self.discharge[i] > self.discharge[old])
+            {
+                upstream[j] = Some(i);
+            }
+        }
+        let (edge_fade, radial_fade) = self.config.fades();
+        let valid = |p: [f64; 2]| {
+            nearest(p, roots).is_some_and(|(owner, d, other)| {
+                owner.key == self.coast.key
+                    && d < f64::from(self.config.radius) - radial_fade - 1.
+                    && other - d > self.config.margin + edge_fade + 2.
+            })
+        };
+        let positions: Vec<_> = (0..count)
+            .map(|i| {
+                let p = self.point(i);
+                if self.ocean[i] || !self.active[i] {
+                    return p;
+                }
+                let slope = self.parent[i].map_or(0., |j| {
+                    let q = self.point(j);
+                    (self.filled[i] - self.filled[j]).abs()
+                        / (p[0] - q[0]).hypot(p[1] - q[1]).max(1.)
+                });
+                let mut shore_distance = 0.;
+                let mut node = i;
+                for _ in 0..4 {
+                    if self.ocean[node] {
+                        break;
+                    }
+                    let Some(parent) = self.parent[node] else {
+                        shore_distance = 48.;
+                        break;
+                    };
+                    let a = self.point(node);
+                    let b = self.point(parent);
+                    shore_distance += (a[0] - b[0]).hypot(a[1] - b[1]);
+                    node = parent;
+                }
+                // Flat estuaries still meander. Fade by travel distance to the
+                // receiving sea, not by elevation above sea level.
+                let amplitude = self.config.meander_amplitude
+                    * (1. - smooth(slope / 0.18))
+                    * smooth(shore_distance / 48.);
+                let shift = [
+                    amplitude * noise(self.seed, p, self.config.meander_scale),
+                    amplitude * noise(self.seed ^ 0xd1b54a32d192ed03, p, self.config.meander_scale),
+                ];
+                for scale in [1., 0.5, 0.25] {
+                    let candidate = [p[0] + shift[0] * scale, p[1] + shift[1] * scale];
+                    if valid(candidate) {
+                        return candidate;
+                    }
+                }
+                p
+            })
+            .collect();
+        let origin = self.point(0);
+        let node = |p: [f64; 2]| {
+            let x = ((p[0] - origin[0]) / f64::from(self.config.step)).round() as usize;
+            let z = ((p[1] - origin[1]) / f64::from(self.config.step)).round() as usize;
+            z * self.side + x
+        };
+        let mut curved = Vec::with_capacity(self.segments.len() * 4);
+        for s in &self.segments {
+            let i = node(s.from);
+            let j = node(s.to);
+            let a = positions[i];
+            let b = positions[j];
+            let previous =
+                upstream[i].map_or([2. * a[0] - b[0], 2. * a[1] - b[1]], |k| positions[k]);
+            let next =
+                self.parent[j].map_or([2. * b[0] - a[0], 2. * b[1] - a[1]], |k| positions[k]);
+            let length = (b[0] - a[0]).hypot(b[1] - a[1]);
+            let handle = |p: [f64; 2], v: [f64; 2], sign: f64| {
+                let scale = length / (3. * v[0].hypot(v[1]).max(0.001));
+                [p[0] + v[0] * scale * sign, p[1] + v[1] * scale * sign]
+            };
+            let mut controls = [
+                a,
+                handle(a, [b[0] - previous[0], b[1] - previous[1]], 1.),
+                handle(b, [next[0] - a[0], next[1] - a[1]], -1.),
+                b,
+            ];
+            if (0..=8).any(|step| !valid(bezier(controls, f64::from(step) / 8.))) {
+                controls = [
+                    a,
+                    [a[0] + (b[0] - a[0]) / 3., a[1] + (b[1] - a[1]) / 3.],
+                    [
+                        a[0] + 2. * (b[0] - a[0]) / 3.,
+                        a[1] + 2. * (b[1] - a[1]) / 3.,
+                    ],
+                    b,
+                ];
+            }
+            let source = upstream[i].is_none_or(|k| {
+                self.discharge[k] * (f64::from(self.config.step) / 32.).powi(2)
+                    < self.config.min_cells
+            });
+            for part in 0..4 {
+                let t0 = f64::from(part) / 4.;
+                let t1 = f64::from(part + 1) / 4.;
+                let t = (t0 + t1) * 0.5;
+                let middle = bezier(controls, t);
+                let taper = if source { smooth(t) } else { 1. };
+                curved.push(Segment {
+                    from: bezier(controls, t0),
+                    to: bezier(controls, t1),
+                    water: [
+                        s.water[0] * (1. - t0) + s.water[1] * t0,
+                        s.water[0] * (1. - t1) + s.water[1] * t1,
+                    ],
+                    cells: s.cells,
+                    half_width: (s.half_width
+                        * self.config.width_scale
+                        * (1. + 0.18 * noise(self.seed ^ 0x85ebca6b, middle, 72.))
+                        * (0.35 + 0.65 * taper))
+                        .max(0.85),
+                    depth: 1.2 + (s.depth * self.config.depth_scale - 1.2).max(0.) * taper,
+                    mouth: s.mouth && part == 3,
+                });
+            }
+        }
+        self.segments = curved;
+    }
+
     fn index(&mut self) {
         self.bin_side = (self.config.radius * 2 / 64 + 1) as usize;
         self.bins = vec![Vec::new(); self.bin_side * self.bin_side];
         for (id, s) in self.segments.iter().enumerate() {
-            let pad = s.half_width * 2. + 8.;
+            let pad = if self.config.natural {
+                s.half_width * 1.25 * self.config.bank_scale + 14.
+            } else {
+                s.half_width * 2. + 8.
+            };
             let lo = [s.from[0].min(s.to[0]) - pad, s.from[1].min(s.to[1]) - pad];
             let hi = [s.from[0].max(s.to[0]) + pad, s.from[1].max(s.to[1]) + pad];
             let [lx, lz] = self.bin(lo);
@@ -553,15 +729,35 @@ impl Basin {
             let t =
                 (((p[0] - s.from[0]) * v[0] + (p[1] - s.from[1]) * v[1]) / length).clamp(0., 1.);
             let d = (p[0] - s.from[0] - v[0] * t).hypot(p[1] - s.from[1] - v[1] * t);
-            let outer = s.half_width * 2. + 8.;
+            let signed =
+                ((p[0] - s.from[0]) * v[1] - (p[1] - s.from[1]) * v[0]) / length.sqrt().max(0.001);
+            let width = if self.config.natural {
+                s.half_width * (1. + 0.18 * noise(self.seed ^ 0x9e3779b9, p, 48.) * signed.signum())
+            } else {
+                s.half_width
+            };
+            let outer = if self.config.natural {
+                width * self.config.bank_scale + 10.
+            } else {
+                width * 2. + 8.
+            };
             if d >= outer {
                 continue;
             }
             let w = s.water[0] * (1. - t) + s.water[1] * t;
-            let strength = 1. - smooth((d - s.half_width) / (outer - s.half_width));
-            let bed = w - s.depth * (1. - 0.3 * (d / s.half_width).min(1.).powi(2));
-            let target = raw + (bed.min(raw) - raw) * strength;
-            let core = d <= s.half_width;
+            let strength = 1. - smooth((d - width) / (outer - width));
+            let target = if self.config.natural {
+                let bed = if d <= width {
+                    w - s.depth * (1. - (d / width).powi(2)).max(0.).powf(1.2)
+                } else {
+                    w + (raw - w).max(0.) * smooth((d - width) / (outer - width))
+                };
+                bed.min(raw)
+            } else {
+                let bed = w - s.depth * (1. - 0.3 * (d / width).min(1.).powi(2));
+                raw + (bed.min(raw) - raw) * strength
+            };
+            let core = d <= width;
             let choose = if core {
                 d < core_distance
                     || (d == core_distance && result.is_none_or(|old| target < old.bed))
@@ -846,6 +1042,136 @@ mod tests {
             ..Config::default()
         }
     }
+
+    #[test]
+    fn natural_channels_bend_and_keep_their_confluence_vertices() {
+        let coast = Coast {
+            key: Key(0, 0),
+            x: -4,
+            z: 0,
+        };
+        let mut basin = Basin::compile(
+            coast,
+            Config {
+                radius: 512,
+                natural: false,
+                ..config()
+            },
+            &CoastHill,
+            &[coast],
+        );
+        let original = basin.segments.clone();
+        assert!(original.len() > 10);
+        basin.config.natural = true;
+        basin.naturalize(&[coast]);
+        assert_eq!(basin.segments.len(), original.len() * 4);
+        let mut bent = 0;
+        for (old, parts) in original
+            .iter()
+            .zip(basin.segments.as_chunks::<4>().0.iter())
+        {
+            for pair in parts.windows(2) {
+                assert_eq!(pair[0].to, pair[1].from);
+                assert_eq!(pair[0].water[1], pair[1].water[0]);
+            }
+            let a = parts[0].from;
+            let b = parts[3].to;
+            let p = parts[1].to;
+            if ((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])).abs() > 0.1 {
+                bent += 1;
+            }
+            for (other, other_parts) in original
+                .iter()
+                .zip(basin.segments.as_chunks::<4>().0.iter())
+            {
+                if old.to == other.from {
+                    assert_eq!(
+                        parts[3].to, other_parts[0].from,
+                        "tributary disconnected at a smoothed junction"
+                    );
+                }
+            }
+        }
+        assert!(
+            bent > 5,
+            "a natural river must not remain a chain of straight D8 cuts"
+        );
+    }
+
+    #[test]
+    fn natural_headwaters_start_shallow_instead_of_a_full_depth_pit() {
+        let coast = Coast {
+            key: Key(0, 0),
+            x: -4,
+            z: 0,
+        };
+        let mut basin = Basin::compile(
+            coast,
+            Config {
+                radius: 512,
+                natural: false,
+                ..config()
+            },
+            &CoastHill,
+            &[coast],
+        );
+        let original = basin.segments.clone();
+        basin.config.natural = true;
+        basin.naturalize(&[coast]);
+        let mut sources = 0;
+        for (old, parts) in original
+            .iter()
+            .zip(basin.segments.as_chunks::<4>().0.iter())
+        {
+            if !original.iter().any(|s| s.to == old.from) {
+                assert!(parts[0].depth < 1.5 && parts[3].depth > parts[0].depth);
+                assert!(parts[3].half_width > parts[0].half_width);
+                sources += 1;
+            }
+        }
+        assert!(sources > 0);
+    }
+
+    #[test]
+    fn flat_estuaries_meander_even_when_their_water_is_at_sea_level() {
+        #[derive(Debug)]
+        struct FlatCoast;
+        impl Terrain for FlatCoast {
+            fn land(&self, x: i32, _: i32) -> Land {
+                Land {
+                    height: if x < 0 { 61. } else { 63. },
+                    ocean: x < 0,
+                }
+            }
+        }
+        let coast = Coast {
+            key: Key(0, 0),
+            x: -4,
+            z: 0,
+        };
+        let mut basin = Basin::compile(
+            coast,
+            Config {
+                radius: 512,
+                natural: false,
+                ..config()
+            },
+            &FlatCoast,
+            &[coast],
+        );
+        let original = basin.segments.clone();
+        assert!(original.len() > 10);
+        basin.config.natural = true;
+        basin.naturalize(&[coast]);
+        assert!(
+            original
+                .iter()
+                .zip(basin.segments.as_chunks::<4>().0.iter())
+                .any(|(old, parts)| old.water[0] == 63.
+                    && (old.from[0] - parts[0].from[0]).hypot(old.from[1] - parts[0].from[1]) > 1.),
+            "sea-level rivers were left on the straight DEM lattice"
+        );
+    }
     #[test]
     fn flood_routes_conserve_and_descend_to_receiving_water() {
         let c = Coast {
@@ -910,8 +1236,8 @@ mod tests {
                     let basin = a.basin(c);
                     if let Some(s) = basin.segments.first() {
                         points.push((
-                            ((s.from[0] + s.to[0]) * 0.5) as i32,
-                            ((s.from[1] + s.to[1]) * 0.5) as i32,
+                            ((s.from[0] + s.to[0]) * 0.5).round() as i32,
+                            ((s.from[1] + s.to[1]) * 0.5).round() as i32,
                         ));
                     }
                 }
@@ -1001,8 +1327,8 @@ mod tests {
                 let basin = world.basin(c);
                 for s in &basin.segments {
                     let p = [
-                        ((s.from[0] + s.to[0]) * 0.5) as i32,
-                        ((s.from[1] + s.to[1]) * 0.5) as i32,
+                        ((s.from[0] + s.to[0]) * 0.5).round() as i32,
+                        ((s.from[1] + s.to[1]) * 0.5).round() as i32,
                     ];
                     let profile = world
                         .sample(p[0], p[1])

@@ -66,7 +66,12 @@ def recipe():
     return {
         # Presence enables the Rust watershed adapter only for this saved
         # recipe. Its value is an ordinary unused vanilla constant.
-        "data/immersive_landscapes/worldgen/density_function/watershed_v1.json": 1.0,
+        "data/immersive_landscapes/worldgen/density_function/watershed_v1.json": 2.0,
+        "data/immersive_landscapes/worldgen/density_function/river_meander_amplitude.json":14.0,
+        "data/immersive_landscapes/worldgen/density_function/river_meander_scale.json":96.0,
+        "data/immersive_landscapes/worldgen/density_function/river_width_scale.json":1.0,
+        "data/immersive_landscapes/worldgen/density_function/river_depth_scale.json":1.0,
+        "data/immersive_landscapes/worldgen/density_function/river_bank_scale.json":3.0,
         "data/immersive_landscapes/worldgen/density_function/range_field.json": ridge,
         "data/immersive_landscapes/worldgen/density_function/valley_profile.json": valley,
         "data/immersive_landscapes/worldgen/density_function/valley_strength.json": erosion_strength,
@@ -91,9 +96,9 @@ def main():
         "description": "Immersive Landscapes: vanilla terrain with coherent ranges and graded valleys, by dormyu",
         "pack_format": 121, "min_format": 121, "max_format": 121}}, indent=2) + "\n", encoding="utf-8", newline="\n")
     metadata = {
-        "schema": 1, "preset": "vanilla-natural-v3", "author": "dormyu",
+        "schema": 1, "preset": "vanilla-natural-v4", "author": "dormyu",
         "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
-        "generation_family": "vanilla-natural", "descriptor_version": 7,
+        "generation_family": "vanilla-natural", "descriptor_version": 8,
         "vanilla_aliases": {"immersive_landscapes:vanilla_offset": "minecraft:overworld/offset",
                             "immersive_landscapes:vanilla_base_3d": "minecraft:overworld/base_3d_noise"},
         "preserves": ["vanilla continents and climate scale", "vanilla height limits and sea level",

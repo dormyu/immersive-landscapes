@@ -1,8 +1,8 @@
 // Seed-bound native adapter. MIT, dormyu. No gameplay-frame hook.
 use super::generator::{LodColumn, ProtoChunk, SurfaceSample};
+use super::immersive_landscapes_spans::replace_run;
 use super::immersive_landscapes_watershed::{Config, Land, Profile, Terrain, World};
 use super::terrain::TerrainError;
-use super::immersive_landscapes_spans::replace_run;
 use crate::registry::{BlockRegistry, BlockStateId};
 use horizon_core::density::{DensitySampler, SampleError, SamplerContext};
 use horizon_core::{
@@ -23,6 +23,8 @@ struct NativeTerrain {
     id: usize,
     preliminary: Arc<dyn DensitySampler>,
     continents: Arc<dyn DensitySampler>,
+    density: Arc<dyn DensitySampler>,
+    natural: bool,
     failed: AtomicBool,
 }
 
@@ -37,7 +39,23 @@ impl Terrain for NativeTerrain {
         DEM.with_borrow_mut(|state| {
             if state.0 != self.id { *state = (self.id, SamplerContext::cached()); }
             state.1.reset();
-            let values = self.preliminary.sample_value(&mut state.1, [x, 0, z])
+            // ChunkSurfaceLevel is an aquifer lower-bound estimate, NOT the
+            // land surface. Using it as a DEM turns whole forests into a flat
+            // below-sea catchment and cuts grid-shaped channels through them.
+            let surface = if self.natural {
+                let volume = DensityVolume::new([1,49,1],[x,-64,z],[1,8,1])
+                    .expect("fixed native surface lattice");
+                let mut samples = [0.0_f32;49];
+                self.density.sample_volume(&mut state.1,&mut samples,volume).map(|()| {
+                    let Some(i) = samples.iter().rposition(|&d|d>0.0) else {return -64.0;};
+                    let bottom = -64.0+i as f32*8.0;
+                    let crossing = if i+1<samples.len() {
+                        samples[i]/(samples[i]-samples[i+1]).max(f32::EPSILON)
+                    } else {0.0};
+                    ((bottom+crossing*8.0).floor()+1.0).min(320.0)
+                })
+            } else {self.preliminary.sample_value(&mut state.1,[x,0,z])};
+            let values = surface
                 .and_then(|height| {
                     state.1.reset();
                     self.continents.sample_value(&mut state.1, [x, 0, z]).map(|c| (height, c))
@@ -100,6 +118,7 @@ struct BuildFrame {
     reentry: bool,
     cache: Option<PathBuf>,
     cache_identity: u64,
+    config: Config,
     atlas: Option<Arc<Atlas>>,
 }
 
@@ -131,7 +150,7 @@ pub fn build_reentry(token: usize) -> bool {
     })
 }
 
-pub fn begin_build(token: usize, seed: i64, cache_identity: u64) -> BuildGuard {
+pub fn begin_build(token: usize, seed: i64, cache_identity: u64, config: Config) -> BuildGuard {
     // The server's worldgen data cannot choose a client's filesystem path.
     let cache = std::env::var_os("HORIZON_IL_CACHE_DIR")
         .map(PathBuf::from)
@@ -148,6 +167,7 @@ pub fn begin_build(token: usize, seed: i64, cache_identity: u64) -> BuildGuard {
             reentry: true,
             cache,
             cache_identity,
+            config,
             atlas: None,
         });
         stack.len()
@@ -192,9 +212,11 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
             id,
             preliminary: samplers[6].clone(),
             continents: samplers[2].clone(),
+            density: samplers[7].clone(),
+            natural: frame.config.natural,
             failed: AtomicBool::new(false),
         };
-        let mut world = World::new(terrain, frame.seed as u64, Config::default());
+        let mut world = World::new(terrain, frame.seed as u64, frame.config);
         if let Some(directory) = &frame.cache {
             world = world.with_dem_cache(directory.clone(), frame.cache_identity);
         }
@@ -206,7 +228,8 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
         });
         frame.atlas = Some(atlas.clone());
         log::info!(
-            "Immersive Landscapes: bound hydrology-v1 to native terrain for seed {}",
+            "Immersive Landscapes: bound hydrology-v{} to native terrain for seed {}",
+            if frame.config.natural { 2 } else { 1 },
             frame.seed
         );
         Some(atlas)
@@ -214,7 +237,11 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
     let Some(atlas) = atlas else {
         return;
     };
+    let natural = atlas.world.config.natural;
     for field in [4, 5, 6, 7] {
+        if natural && field == 6 {
+            continue;
+        }
         samplers[field] = Arc::new(HydroSampler {
             base: samplers[field].clone(),
             field,
