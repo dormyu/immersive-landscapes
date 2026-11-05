@@ -10,7 +10,7 @@ use horizon_core::{
     noise::{DensityError, DensityVolume},
 };
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, Weak};
@@ -26,6 +26,13 @@ struct NativeTerrain {
     density: Arc<dyn DensitySampler>,
     natural: bool,
     failed: AtomicBool,
+    samples: Mutex<TerrainSamples>,
+}
+
+#[derive(Debug, Default)]
+struct TerrainSamples {
+    values: HashMap<(i32, i32), Land>,
+    order: VecDeque<(i32, i32)>,
 }
 
 thread_local! {
@@ -36,7 +43,14 @@ thread_local! {
 
 impl Terrain for NativeTerrain {
     fn land(&self, x: i32, z: i32) -> Land {
-        DEM.with_borrow_mut(|state| {
+        let key = (x, z);
+        if self.natural {
+            let cache = self.samples.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(&land) = cache.values.get(&key) {
+                return land;
+            }
+        }
+        let land = DEM.with_borrow_mut(|state| {
             if state.0 != self.id { *state = (self.id, SamplerContext::cached()); }
             state.1.reset();
             // ChunkSurfaceLevel is an aquifer lower-bound estimate, NOT the
@@ -70,7 +84,19 @@ impl Terrain for NativeTerrain {
                     Land { height: 128.0, ocean: false }
                 }
             }
-        })
+        });
+        if self.natural {
+            let mut cache = self.samples.lock().unwrap_or_else(|e| e.into_inner());
+            if cache.values.insert(key, land).is_none() {
+                cache.order.push_back(key);
+                if cache.values.len() > 32768
+                    && let Some(old) = cache.order.pop_front()
+                {
+                    cache.values.remove(&old);
+                }
+            }
+        }
+        land
     }
 }
 
@@ -215,6 +241,7 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
             density: samplers[7].clone(),
             natural: frame.config.natural,
             failed: AtomicBool::new(false),
+            samples: Mutex::new(TerrainSamples::default()),
         };
         let mut world = World::new(terrain, frame.seed as u64, frame.config);
         if let Some(directory) = &frame.cache {

@@ -17,8 +17,15 @@ deeper than8 blocks2303→14; small land components235→14 versus11 in the unch
 foundation. These are scoped diagnostics, not final client or visual acceptance.
 
 Channels use shared curved junctions, lowland meanders, variable width, asymmetric
-banks, rounded cross-sections and shallow headwater starts.25 calculation tests
-and Clippy pass. Client images, network/save and performance checks are pending.
+banks, rounded cross-sections and shallow headwater starts.29 calculation tests
+and Clippy pass. Final client images, network/save and performance checks are pending.
+
+The first candidate's actual-game review also found raised rectangular water at
+some mouths. New lake placement requires four dry corners sharing one spill level,
+and receiving sea columns cap channel/lake water at sea level. Saved v7 retains
+its exact old selection. A bounded32768-point native surface cache avoids repeated
+density evaluations in coast search and overlapping DEMs; values are unchanged.
+The first candidate was not installed.
 
 Five original constant density files under immersive_landscapes:river_* store
 amplitude, wavelength, width, depth and bank spread. They are snapshotted with

@@ -758,7 +758,11 @@ impl Basin {
             if d >= outer {
                 continue;
             }
-            let w = s.water[0] * (1. - t) + s.water[1] * t;
+            let mut w = s.water[0] * (1. - t) + s.water[1] * t;
+            if self.config.natural && raw <= self.config.sea {
+                // A river mouth cannot raise the receiving ocean into a slab.
+                w = w.min(self.config.sea);
+            }
             let strength = 1. - smooth((d - width) / (outer - width));
             let target = if self.config.natural {
                 let bed = if d <= width {
@@ -794,19 +798,17 @@ impl Basin {
         // Actual filled depressions connected to a receiving ocean: level lakes,
         // not independent random puddles. Bilinear dry shores use the raw terrain.
         let origin = self.point(0);
-        let gx = ((p[0] - origin[0]) / f64::from(self.config.step)).round() as i32;
-        let gz = ((p[1] - origin[1]) / f64::from(self.config.step)).round() as i32;
-        if gx >= 0 && gz >= 0 && gx < self.side as i32 && gz < self.side as i32 {
-            let i = gz as usize * self.side + gx as usize;
-            if self.active[i]
-                && self.drains_ocean[i]
-                && !self.ocean[i]
-                && self.filled[i] > self.raw[i] + 1.5
-                && raw < self.filled[i] - 0.25
-            {
+        let gx = (p[0] - origin[0]) / f64::from(self.config.step);
+        let gz = (p[1] - origin[1]) / f64::from(self.config.step);
+        let level = self.lake_level(gx, gz);
+        if let Some(mut water) = level {
+            if self.config.natural && raw <= self.config.sea {
+                water = water.min(self.config.sea);
+            }
+            if raw < water - 0.25 {
                 let lake = Profile {
                     bed: raw,
-                    water: self.filled[i],
+                    water,
                     strength: 1.,
                     raw,
                     lake: true,
@@ -821,6 +823,48 @@ impl Basin {
             }
         }
         result
+    }
+
+    fn lake_level(&self, gx: f64, gz: f64) -> Option<f64> {
+        if !self.config.natural {
+            let x = gx.round() as i32;
+            let z = gz.round() as i32;
+            if x < 0 || z < 0 || x >= self.side as i32 || z >= self.side as i32 {
+                return None;
+            }
+            let i = z as usize * self.side + x as usize;
+            return (self.active[i]
+                && self.drains_ocean[i]
+                && !self.ocean[i]
+                && self.filled[i] > self.raw[i] + 1.5)
+                .then_some(self.filled[i]);
+        }
+        let x = gx.floor() as i32;
+        let z = gz.floor() as i32;
+        if x < 0 || z < 0 || x + 1 >= self.side as i32 || z + 1 >= self.side as i32 {
+            return None;
+        }
+        let i = z as usize * self.side + x as usize;
+        let corners = [i, i + 1, i + self.side, i + self.side + 1];
+        // A nearest dry raster cell must not flood the ocean half of its tile.
+        // Publish only a receiving depression shared by all four dry corners.
+        if !corners
+            .iter()
+            .all(|&j| self.active[j] && self.drains_ocean[j] && !self.ocean[j])
+            || !corners.iter().any(|&j| self.filled[j] > self.raw[j] + 1.5)
+        {
+            return None;
+        }
+        let lo = corners
+            .iter()
+            .map(|&j| self.filled[j])
+            .fold(f64::INFINITY, f64::min);
+        let hi = corners
+            .iter()
+            .map(|&j| self.filled[j])
+            .fold(f64::NEG_INFINITY, f64::max);
+        // Different spill levels are separate ponds, not a stair of square lakes.
+        (hi - lo < 0.25 && lo > self.config.sea).then_some(lo)
     }
 }
 
@@ -1199,6 +1243,65 @@ mod tests {
         assert_eq!(p.voxel_floor(false), 75);
         assert_eq!(p.voxel_floor(true), 74);
         assert!(p.voxel_floor(true) < p.water.ceil() as i32);
+    }
+
+    fn lake_fixture() -> Basin {
+        let c = Coast {
+            key: Key(0, 0),
+            x: 0,
+            z: 0,
+        };
+        let mut b = Basin::compile(c, config(), &CoastHill, &[c]);
+        b.segments.clear();
+        b.index();
+        b.raw.fill(66.);
+        b.filled.fill(70.);
+        b.active.fill(true);
+        b.drains_ocean.fill(true);
+        b.ocean.fill(false);
+        b
+    }
+
+    #[test]
+    fn lake_shore_does_not_copy_a_dry_cell_over_the_ocean() {
+        let mut b = lake_fixture();
+        let i = 3 * b.side + 3;
+        b.ocean[i + 1] = true;
+        assert_eq!(b.lake_level(3.2, 3.2), None);
+        b.config.natural = false;
+        assert_eq!(
+            b.lake_level(3.2, 3.2),
+            Some(70.),
+            "saved v7 keeps its exact nearest-cell recipe"
+        );
+    }
+
+    #[test]
+    fn inland_lake_uses_one_shared_spill_level_without_square_steps() {
+        let mut b = lake_fixture();
+        assert_eq!(b.lake_level(3.1, 3.1), Some(70.));
+        assert_eq!(b.lake_level(3.9, 3.9), Some(70.));
+        b.filled[4 * b.side + 4] = 72.;
+        assert_eq!(b.lake_level(3.2, 3.2), None);
+    }
+
+    #[test]
+    fn an_estuary_never_raises_ocean_water_above_sea_level() {
+        let mut b = lake_fixture();
+        b.active.fill(false);
+        b.segments = vec![Segment {
+            from: [-16., 0.],
+            to: [16., 0.],
+            water: [68., 66.],
+            cells: 24.,
+            half_width: 3.,
+            depth: 3.,
+            mouth: true,
+        }];
+        b.index();
+        assert_eq!(b.sample(0, 0, 60.).unwrap().water, 63.);
+        b.config.natural = false;
+        assert_eq!(b.sample(0, 0, 60.).unwrap().water, 67.);
     }
     #[test]
     fn flood_routes_conserve_and_descend_to_receiving_water() {
