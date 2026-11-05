@@ -200,37 +200,6 @@ impl Config {
     }
 }
 
-/// Receiving sea floors on the native 4x8 density lattice (Z, X, Y layout).
-/// A 16-block drainage DEM is insufficient to classify a narrow rocky coast.
-pub fn native_sea_floors(samples: &[f32; 196]) -> [Option<i32>; 16] {
-    let mut floors = [None; 16];
-    for (cell, floor) in floors.iter_mut().enumerate() {
-        let tx = (cell % 4) as f32 / 4.;
-        let tz = (cell / 4) as f32 / 4.;
-        let mut column = [0.; 49];
-        for (y, value) in column.iter_mut().enumerate() {
-            let a = samples[y] + (samples[49 + y] - samples[y]) * tx;
-            let b = samples[98 + y] + (samples[147 + y] - samples[98 + y]) * tx;
-            *value = a + (b - a) * tz;
-        }
-        let at63 = column[15] + (column[16] - column[15]) * 0.875;
-        if column.iter().any(|d| !d.is_finite())
-            || at63 > 0.
-            || column[16..].iter().any(|&d| d > 0.)
-        {
-            continue;
-        }
-        let height = if let Some(i) = column.iter().rposition(|&d| d > 0.) {
-            let t = column[i] / (column[i] - column[i + 1]).max(f32::EPSILON);
-            (-64. + i as f32 * 8. + t * 8.).ceil() as i32
-        } else {
-            -63
-        };
-        *floor = Some(height.clamp(-63, 62));
-    }
-    floors
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key(pub i32, pub i32);
 
@@ -259,6 +228,22 @@ pub struct Profile {
     pub strength: f64,
     pub raw: f64,
     pub lake: bool,
+}
+
+/// An unmodified native water level distinguishes a sea column from an inland
+/// lake whose BED happens to lie below sea. Density sign alone cannot do that.
+pub fn reconcile_native_water(mut p: Profile, native: Option<(i32, i32)>, sea: i32) -> Profile {
+    if let Some((ground, water)) = native
+        && ground < water
+        && water >= sea
+    {
+        p.raw = f64::from(ground);
+        p.bed = f64::from(ground);
+        p.water = f64::from(water);
+        p.strength = 1.;
+        p.lake = water > sea;
+    }
+    p
 }
 
 impl Profile {
@@ -789,11 +774,7 @@ impl Basin {
             if d >= outer {
                 continue;
             }
-            let mut w = s.water[0] * (1. - t) + s.water[1] * t;
-            if self.config.natural && raw <= self.config.sea {
-                // A river mouth cannot raise the receiving ocean into a slab.
-                w = w.min(self.config.sea);
-            }
+            let w = s.water[0] * (1. - t) + s.water[1] * t;
             let strength = 1. - smooth((d - width) / (outer - width));
             let target = if self.config.natural {
                 let bed = if d <= width {
@@ -832,25 +813,22 @@ impl Basin {
         let gx = (p[0] - origin[0]) / f64::from(self.config.step);
         let gz = (p[1] - origin[1]) / f64::from(self.config.step);
         let level = self.lake_level(gx, gz);
-        if let Some(mut water) = level {
-            if self.config.natural && raw <= self.config.sea {
-                water = water.min(self.config.sea);
-            }
-            if raw < water - 0.25 {
-                let lake = Profile {
-                    bed: raw,
-                    water,
-                    strength: 1.,
-                    raw,
-                    lake: true,
-                };
-                if core_distance.is_finite() {
-                    if let Some(channel) = &mut result {
-                        channel.water = channel.water.max(lake.water);
-                    }
-                } else if result.is_none_or(|old| lake.water > old.water) {
-                    result = Some(lake);
+        if let Some(water) = level
+            && raw < water - 0.25
+        {
+            let lake = Profile {
+                bed: raw,
+                water,
+                strength: 1.,
+                raw,
+                lake: true,
+            };
+            if core_distance.is_finite() {
+                if let Some(channel) = &mut result {
+                    channel.water = channel.water.max(lake.water);
                 }
+            } else if result.is_none_or(|old| lake.water > old.water) {
+                result = Some(lake);
             }
         }
         result
@@ -1293,30 +1271,29 @@ mod tests {
         b
     }
 
-    fn density_plane(left: f32, right: f32) -> [f32; 196] {
-        std::array::from_fn(|i| {
-            let x = (i / 49) % 2;
-            let y = -64. + (i % 49) as f32 * 8.;
-            (if x == 0 { left } else { right }) - y
-        })
-    }
-
-    #[test]
-    fn receiving_sea_refinement_preserves_actual_underwater_depth() {
-        assert_eq!(native_sea_floors(&density_plane(56., 56.)), [Some(56); 16]);
-    }
-
-    #[test]
-    fn receiving_sea_refinement_does_not_clamp_an_inland_river() {
-        assert_eq!(native_sea_floors(&density_plane(70., 70.)), [None; 16]);
-    }
-
-    #[test]
-    fn receiving_sea_refinement_resolves_a_coast_inside_one_drainage_cell() {
-        let floors = native_sea_floors(&density_plane(52., 76.));
-        for row in floors.as_chunks::<4>().0 {
-            assert_eq!(*row, [Some(52), Some(58), None, None]);
+    fn river_profile() -> Profile {
+        Profile {
+            raw: 68.,
+            bed: 64.,
+            water: 67.,
+            strength: 1.,
+            lake: false,
         }
+    }
+    #[test]
+    fn native_sea_preserves_actual_underwater_depth() {
+        let p = reconcile_native_water(river_profile(), Some((52, 63)), 63);
+        assert_eq!((p.bed, p.water, p.lake), (52., 63., false));
+    }
+    #[test]
+    fn a_native_inland_lake_below_sea_is_not_lowered_into_a_pit() {
+        let p = reconcile_native_water(river_profile(), Some((56, 70)), 63);
+        assert_eq!((p.bed, p.water, p.lake), (56., 70., true));
+    }
+    #[test]
+    fn dry_native_columns_keep_the_planned_river_profile() {
+        let p = reconcile_native_water(river_profile(), None, 63);
+        assert_eq!((p.bed, p.water, p.lake), (64., 67., false));
     }
 
     #[test]
@@ -1343,7 +1320,7 @@ mod tests {
     }
 
     #[test]
-    fn an_estuary_never_raises_ocean_water_above_sea_level() {
+    fn a_coarse_subsea_dem_does_not_decide_an_inland_lakes_water_level() {
         let mut b = lake_fixture();
         b.active.fill(false);
         b.segments = vec![Segment {
@@ -1356,7 +1333,7 @@ mod tests {
             mouth: true,
         }];
         b.index();
-        assert_eq!(b.sample(0, 0, 60.).unwrap().water, 63.);
+        assert_eq!(b.sample(0, 0, 60.).unwrap().water, 67.);
         b.config.natural = false;
         assert_eq!(b.sample(0, 0, 60.).unwrap().water, 67.);
     }

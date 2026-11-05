@@ -1,9 +1,7 @@
 // Seed-bound native adapter. MIT, dormyu. No gameplay-frame hook.
 use super::generator::{LodColumn, ProtoChunk, SurfaceSample};
 use super::immersive_landscapes_spans::replace_run;
-use super::immersive_landscapes_watershed::{
-    Config, Land, Profile, Terrain, World, native_sea_floors,
-};
+use super::immersive_landscapes_watershed::{Config, Land, Profile, Terrain, World};
 use super::terrain::TerrainError;
 use crate::registry::{BlockRegistry, BlockStateId};
 use horizon_core::density::{DensitySampler, SampleError, SamplerContext};
@@ -11,7 +9,7 @@ use horizon_core::{
     geometry::Axis,
     noise::{DensityError, DensityVolume},
 };
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -29,7 +27,6 @@ struct NativeTerrain {
     natural: bool,
     failed: AtomicBool,
     samples: Mutex<TerrainSamples>,
-    sea_tiles: Mutex<SeaTiles>,
 }
 
 #[derive(Debug, Default)]
@@ -38,57 +35,80 @@ struct TerrainSamples {
     order: VecDeque<(i32, i32)>,
 }
 
-#[derive(Debug, Default)]
-struct SeaTiles {
-    values: HashMap<(i32, i32), [Option<i32>; 16]>,
-    order: VecDeque<(i32, i32)>,
-}
-
 impl NativeTerrain {
-    fn receiving_sea_floor(&self, x: i32, z: i32) -> Option<i32> {
-        let key = (x.div_euclid(4), z.div_euclid(4));
-        let cell = (z.rem_euclid(4) * 4 + x.rem_euclid(4)) as usize;
-        {
-            let cache = self.sea_tiles.lock().unwrap_or_else(|e| e.into_inner());
-            if let Some(floors) = cache.values.get(&key) {
-                return floors[cell];
-            }
-        }
-        let floors = DEM.with_borrow_mut(|state| {
+    fn open_at_sea(&self, x: i32, z: i32) -> bool {
+        DEM.with_borrow_mut(|state| {
             if state.0 != self.id {
                 *state = (self.id, SamplerContext::cached());
             }
             state.1.reset();
-            let volume = DensityVolume::new([2, 49, 2], [key.0 * 4, -64, key.1 * 4], [4, 8, 4])
-                .expect("fixed native sea lattice");
-            let mut samples = [0.; 196];
-            if self
-                .density
-                .sample_volume(&mut state.1, &mut samples, volume)
-                .is_ok()
-            {
-                native_sea_floors(&samples)
-            } else {
-                [None; 16]
-            }
-        });
-        let mut cache = self.sea_tiles.lock().unwrap_or_else(|e| e.into_inner());
-        if cache.values.insert(key, floors).is_none() {
+            self.density
+                .sample_value(&mut state.1, [x, 63, z])
+                .is_ok_and(|d| d.is_finite() && d <= 0.)
+        })
+    }
+}
+
+#[derive(Default)]
+struct NativeWaterCache {
+    values: HashMap<(i32, i32), Option<SurfaceSample>>,
+    order: VecDeque<(i32, i32)>,
+}
+struct NativeSurface {
+    sample: Box<dyn Fn(i32, i32) -> Option<SurfaceSample> + Send + Sync>,
+    cache: Mutex<NativeWaterCache>,
+}
+impl std::fmt::Debug for NativeSurface {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("native unmodified surface resolver")
+    }
+}
+impl NativeSurface {
+    fn get(&self, x: i32, z: i32) -> Option<SurfaceSample> {
+        let key = (x, z);
+        if let Some(value) = self
+            .cache
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .values
+            .get(&key)
+        {
+            return *value;
+        }
+        let sample = (self.sample)(x, z);
+        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        if cache.values.insert(key, sample).is_none() {
             cache.order.push_back(key);
-            if cache.values.len() > 8192
+            if cache.values.len() > 32768
                 && let Some(old) = cache.order.pop_front()
             {
                 cache.values.remove(&old);
             }
         }
-        floors[cell]
+        sample
     }
 }
 
 thread_local! {
+    static RAW_DEPTH:Cell<u32>=const {Cell::new(0)};
     static DEM: RefCell<(usize, SamplerContext)> = RefCell::new((0, SamplerContext::cached()));
     static BUILD: RefCell<Vec<BuildFrame>> = const { RefCell::new(Vec::new()) };
     static PROFILES: RefCell<Vec<CachedProfile>> = RefCell::new(vec![CachedProfile::default(); 256]);
+}
+
+pub fn without_hydrology<T>(run: impl FnOnce() -> T) -> T {
+    struct Restore(u32);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            RAW_DEPTH.set(self.0);
+        }
+    }
+    let old = RAW_DEPTH.get();
+    RAW_DEPTH.set(old + 1);
+    let restore = Restore(old);
+    let value = run();
+    drop(restore);
+    value
 }
 
 impl Terrain for NativeTerrain {
@@ -156,6 +176,7 @@ pub struct Atlas {
     pub seed: i64,
     pub cache: Option<PathBuf>,
     world: World<NativeTerrain>,
+    native_surface: OnceLock<NativeSurface>,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -179,16 +200,17 @@ impl Atlas {
             let mut profile = self.world.sample(x, z);
             if self.world.config.natural
                 && let Some(p) = &mut profile
-                && p.water > self.world.config.sea
-                && let Some(floor) = self.world.terrain.receiving_sea_floor(x, z)
+                && self.world.terrain.open_at_sea(x, z)
+                && let Some(source) = self.native_surface.get()
             {
-                // Refine only an active wet profile, not every distant column.
-                // The native lattice keeps a coarse land cell from raising sea.
-                p.raw = f64::from(floor);
-                p.bed = f64::from(floor);
-                p.water = self.world.config.sea;
-                p.strength = 1.;
-                p.lake = false;
+                let native = source
+                    .get(x, z)
+                    .and_then(|s| s.water.map(|w| (s.height, w.0)));
+                *p = super::immersive_landscapes_watershed::reconcile_native_water(
+                    *p,
+                    native,
+                    self.world.config.sea as i32,
+                );
             }
             slots[slot] = CachedProfile {
                 atlas: self.id,
@@ -268,9 +290,17 @@ pub fn building() -> bool {
     BUILD.with_borrow(|stack| !stack.is_empty())
 }
 
-pub fn bind_pipeline(pipeline: usize) {
+pub fn bind_pipeline(
+    pipeline: usize,
+    sample: impl Fn(i32, i32) -> Option<SurfaceSample> + Send + Sync + 'static,
+) {
     let atlas = BUILD.with_borrow(|stack| stack.last().and_then(|f| f.atlas.clone()));
     if let Some(atlas) = atlas {
+        let _ = atlas.native_surface.set(NativeSurface {
+            sample: Box::new(sample),
+            cache: Mutex::new(NativeWaterCache::default()),
+        });
+        PROFILES.with_borrow_mut(|slots| slots.fill(CachedProfile::default()));
         let mut map = PIPELINES
             .get_or_init(|| Mutex::new(HashMap::new()))
             .lock()
@@ -305,7 +335,6 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
             natural: frame.config.natural,
             failed: AtomicBool::new(false),
             samples: Mutex::new(TerrainSamples::default()),
-            sea_tiles: Mutex::new(SeaTiles::default()),
         };
         let mut world = World::new(terrain, frame.seed as u64, frame.config);
         if let Some(directory) = &frame.cache {
@@ -316,6 +345,7 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
             seed: frame.seed,
             cache: frame.cache.clone(),
             world,
+            native_surface: OnceLock::new(),
         });
         frame.atlas = Some(atlas.clone());
         log::info!(
@@ -371,6 +401,9 @@ impl DensitySampler for HydroSampler {
         context: &mut SamplerContext,
         [x, y, z]: [i32; 3],
     ) -> Result<f32, SampleError> {
+        if RAW_DEPTH.get() > 0 {
+            return self.base.sample_value(context, [x, y, z]);
+        }
         let Some(p) = self.atlas.profile(x, z) else {
             return self.base.sample_value(context, [x, y, z]);
         };
@@ -411,6 +444,9 @@ impl DensitySampler for HydroSampler {
         // Keep the native vectorized/cache-aware path, including its floating
         // point behavior, throughout unchanged terrain. Profile lookup is 2D.
         self.base.sample_volume(context, buffer, volume)?;
+        if RAW_DEPTH.get() > 0 {
+            return Ok(());
+        }
         let [sx, sy, sz] = volume.sizes();
         for iz in 0..sz {
             let z = volume.block(Axis::Z, iz).expect("validated volume");

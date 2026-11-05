@@ -74,7 +74,16 @@ fn immersive_landscapes_hydrology_build(
         stem,
     );
     if let Ok(generator) = &result {
-        h::bind_pipeline(std::sync::Arc::as_ptr(&generator.pipeline) as *const () as usize);
+        let weak = std::sync::Arc::downgrade(&generator.pipeline);
+        let native = std::sync::Mutex::new(generator.worker().state);
+        h::bind_pipeline(
+            std::sync::Arc::as_ptr(&generator.pipeline) as *const () as usize,
+            move |x, z| {
+                let pipeline = weak.upgrade()?;
+                let mut state = native.lock().unwrap_or_else(|e| e.into_inner());
+                h::without_hydrology(|| pipeline.surface_sample(&mut state, x, z, None))
+            },
+        );
     }
     drop(scope);
     std::ops::ControlFlow::Break(result)
