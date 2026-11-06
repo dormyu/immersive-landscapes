@@ -1,32 +1,36 @@
-# Current checkpoint — IL0.4.0 / DHdormyu.7 / Zoom 2.0.0
+# Immersive Landscapes 0.5.0 handoff
 
-DormLab runtime `add9b6a55dab0fae1b76dae5be395a7076a61ef7618515209edbbce0b7fee62d`, Horizon f42ef42 / Minecraft 26.3.
-Working mod, active development. Built Rust code16250c2; later commits are docs.
-New world type Immersive Landscapes → vanilla-natural-v3 / descriptor7. Saved
-v4/v5/v6 and vanilla recipes remain unchanged. All project files/temp/cache E:.
+Working native mod for Horizon f42ef42 / Minecraft 26.3, IL224a831 / DH623dd71 /
+official Zoom725ff7a. Final runtime `3bb2fb54bc677e1ba3fe3bfdf4f0b18b034c55fbb2285111ab8831a81da4efcd`.
+New worlds: descriptor 10 / vanilla-natural-v6. Saved4–9 recipes stay unchanged;
+v4–v8 runtime fixtures pass; v9 has no separate fixture. Java support, survival,
+classes, DormCore and structure redesign are outside this generation release.
 
-[Implementation](hydrology-development.md), [scoped validation](validation-0.4.0.md).
-22 calculation tests/Clippy, native seeds/cache/two workers, 3093 wet points,
-RU/EN menu/save/old recipes, real game water, two Rust clients and installed Prism
-pass. No normal/far decode warnings in the checked network run. Control is off.
-5127 owner save files and preferences preserved. Do not close Teams.
-Personal near32/DH128 Medium/sim8/maxFps260(unlimited)/VSync off/nativeLOD0/workers Auto preserved.
-Short warmed cap120 flight119.91 FPS/P998.85 ms is not heavy-pack acceptance.
+Generation, native river/lake/ecotone gates, actual scenes, final solo/two-client/
+world-switch and near32/DH128 checks are completed. Read
+[validation](validation-0.5.0.md) for exact receipts, cache warmth and FPS limits.
+Do not repeat completed porting, rebuild a different engine, or represent a
+library/preview/prepared map as the playable mod.
 
-Next: owner review of a NEW v7 world; bounded full inland catchments/outlets,
-delta branching and biome ecotones. Current graph is bounded coastal coverage;
-not every noise valley becomes a river. Keep Minecraft scale/native decoration.
-DH7 still has potential vegetation/material/detail transitions; do not promise
-all-seed zero seams. Future structures target versioned IL geography, not yet rewritten.
-Constructor recursive scope is guarded, but additional mods hooking it need review.
-No survival/classes, DormCore framework or new engine in this mod's scope.
+Source documentation precedes package/install/Prism/publication. For those later
+actions read the v0.5.0 release notes and installed native-build.json. Local QA
+`RustCore/qa/release-0.5.0-final-2026-11-06` has guarded delivery and publication
+scripts, exact backups, source/runtime hashes and fresh launcher verification.
+Resume only a genuinely incomplete receipt; never rerun a completed transaction.
 
-Exact files: ../RustCore/packs/DormLab/rustcore/native-build.json.
-QA: ../RustCore/qa/hydrology-v3-2026-11-04. Rollback: before-hydrology-install
-to prior7292006b/IL0.3.1. Initial network false-positive is revoked and archived;
-the corrected add9b6a5 client passed strict far-warning checks. Historical v4
-owner acceptance remains revoked: that feedback concerned vanilla in EpicReference.
+Known limits for subsequent work: initial DH fill can leave a temporary partial
+horizon; water/material detail may differ; some narrow channels are straight or
+angular; vegetation blending covers ten temperate/cool biomes and does not blend
+all tints. First-use fast flight did not sustain120 FPS. Owner aesthetic and
+heavy-pack acceptance remain unrecorded. These are documented next improvements,
+not reasons to relabel the working release as a prototype.
 
-Source Enter-RustDev.ps1, stable, one Cargo job. Full builds must not overlap.
-The combined46844bc mixer patch is required; DH's older patch alone is insufficient.
-Never push the DH/tool upstream remotes. Public own repo is dormyu/immersive-landscapes.
+Future structures must read the saved descriptor/recipe and native terrain.
+Never rewrite an old world to v10. Use a new Immersive Landscapes world to see
+the new hydrology/ecotones. Z and Z+wheel use the official separate Zoom mod.
+
+All project files/caches/temp/worlds remain on E:. Source Enter-RustDev.ps1,
+stable Rust, one Cargo job and one full-build/game owner. Keep Teams and owner
+applications open. Preserve worlds/accounts and near32/DH128 Medium/sim8/
+maxFps260/VSync off/control off. Never push DH or tooling upstream. Own author
+and GitHub identity is dormyu; source licenses and credits remain separated.

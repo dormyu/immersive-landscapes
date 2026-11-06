@@ -1,73 +1,111 @@
 # Immersive Landscapes
 
-> **0.4.0 has a confirmed terrain defect:** forest shorelines can be perforated
-> and river cuts can look artificial. This branch prepares **0.5.0**, including
-> corrected lake outlets, less regular river reaches, inland drainage and biome
-> transitions. Native and visual release checks are in progress; it is not yet
-> installed or released. [Original defect report](docs/river-form-fix.md).
+Familiar Minecraft terrain with connected mountain regions, rivers that follow
+their catchments, and gradual vegetation transitions. A working native mod for
+the **Horizon Rust client and Rust dedicated server**, by **dormyu**.
 
-Familiar Minecraft terrain with coherent mountain regions, graded valleys and
-connected coastal rivers. A native mod for the **Horizon Rust client and Rust
-dedicated server**, by **dormyu**.
-
-**Working version 0.4.0, active development.** Create a world normally with type
-**Immersive Landscapes** and any seed. No prepared map or manual datapack selection.
-World creation/save, old recipes, two Rust clients and installed Prism are checked.
-
-![Immersive Landscapes with Distant Horizons](docs/images/hydrology-after-near32.png)
+**0.5.0 — working native release.** New-world generation, save/reopen,
+two Rust clients, world switching and the diagnosed DH shoreline regression have
+passed the recorded checks. See [validation](docs/validation-0.5.0.md) for measured
+performance and remaining limits. Source bundles need the documented native build;
+they do not include a game executable or assets.
 
 ## Generation
 
-The vanilla-natural-v3 overlay keeps Minecraft's scale, continents, height limits,
-climate, biomes, native trees/plants, caves, ores and structures. Shared terrain
-fields connect mountain regions and shape broader lowland valleys. Reduced 3D
-rock detail retains cliffs and caves while reducing detached surface masses.
+The `vanilla-natural-v6` recipe keeps Minecraft's scale, continents, climate,
+height limits and gameplay biome identities. Shared ridge, erosion and valley
+fields shape broader mountain regions and connected lowlands. Caves, ores and
+structure definitions remain native; this release does not redesign structures.
 
-Native Rust hydrology adds bounded coastal drainage domains: contributing area,
-common tributary confluences, graded channel beds and shared water profiles for
-actual chunks and distant sampling. Derived input terrain is persisted locally
-with seed/recipe/checksum checks. It adds no gameplay-frame callback.
+Native Rust hydrology builds bounded drainage graphs with tributaries, shared
+confluences and graded beds. In addition to coastal rivers, suitable native
+inland lakes can receive a catchment at their actual water level. Large rivers
+on suitable low coastal plains can split into conservative delta distributaries.
+The branches share the trunk's discharge and are rejected where native terrain
+would require cutting through a cliff or narrow rock bank.
 
-![Actual generated river, native near32](docs/images/river-tributary-actual-game.png)
+River reaches receive terrain-constrained smoothing and meanders. Lake crossings
+preserve existing wet bottoms and islands outside the channel core. A low saddle
+on a planned lake channel can be opened when it is at most six blocks above the
+water surface; the new floor is one block below water. Higher obstacles remain.
 
-Coverage is currently coastal and bounded. **Full inland catchments, delta branches
-and gradual vegetation transitions are unfinished.** Existing noise valleys are
-not all converted. This is a working mod under development, not a claim that every
-landscape requirement or seed has been accepted.
+Vegetation blends across compatible boundaries among ten temperate and cool
+biomes: forest, plains, birch forest, flower forest, dark forest, sunflower plains,
+taiga, meadow, old-growth pine taiga and old-growth spruce taiga. Both native
+vegetation density and neighboring species change through the transition.
+Direct deciduous/conifer borders are supported where native soil and temperature
+permit them. Deserts, jungles, savannas, wetlands, snowy and custom biomes retain
+their native transition behavior. Gameplay biome IDs are unchanged.
 
-Headwater endpoints and banks can still look too regular; more natural branching
-and endpoint shaping remain tuning work.
+![An Immersive Landscapes river following a forested valley](docs/images/0.5-river-long-reach.png)
+
+Actual IL 0.5.0 terrain, code `224a831`, descriptor 10; seed
+`4312740467388825473`, native distance 16, DH off. This development-client
+(opt0) image records terrain appearance; it is not optimized performance evidence.
+
+![A forest thinning into a clearing at a plains boundary](docs/images/0.5-ecotone-forest-plains.png)
+
+Actual new-world forest/plains boundary near `(-1344, 1536)`, same seed and IL
+recipe as above. Optimized client, native distance 8, DH off. The forest edge
+mixes native trees and open ground; this image is local vegetation evidence,
+not a claim of fully blended biome colors or distant rendering.
 
 ## Play and update
 
-Run a Horizon build compiled with this mod, enable it, then create a **NEW** world
-with type **Immersive Landscapes**. Saved v4/Epic, v5/v1 and v6/v2 worlds retain
-their original recipes; ordinary vanilla worlds remain vanilla. Old worlds do not
-gain the new hydrology automatically. Archived v1–v3 experiments need their builds.
+Use a Horizon build compiled with the matching native mod set, enable Immersive
+Landscapes, and create a **NEW** world with type **Immersive Landscapes**. Choose
+any seed; no prepared map or manual data-pack selection is needed. New worlds
+save descriptor **10** and the exact `vanilla-natural-v6` recipe.
 
-The local laboratory is **DormLab**. **DormLab-EpicReference** is a separate
-comparison instance with IL disabled. Do not attribute its ordinary worlds to IL.
+Saved descriptors 4–9 keep their own recipes; reopening a world does not add the
+new river or vegetation markers. Ordinary vanilla worlds remain vanilla. Older
+v1–v3 experiments require their historical builds. The optimized 0.5.0 client
+passed new-world/save/reopen checks and unchanged legacy v4–v8 fixtures. The v9
+recipe path remains supported by the saved-marker policy; it was not a separate
+fixture in this runtime check.
 
-## Build and performance
+The paired rendering set uses **Distant Horizons dormyu.16**, a separate LGPL
+adaptation, and unchanged official **Horizon Zoom 2.0.0**. Hold **Z** to zoom;
+use **Z + mouse wheel** to adjust magnification. DH16 repairs partial LOD
+preparation and boundary walls. It rebuilds derived LOD caches on first use;
+real world chunks and player edits are preserved.
 
-Pinned Horizon f42ef42 / Minecraft 26.3. A .hnmod contains Rust source and must be
-compiled into Horizon. Copying it into a Java mods folder does not activate it.
-[Build instructions](docs/native-build.md), [hydrology implementation](docs/hydrology-development.md),
-[validation and limits](docs/validation-0.4.0.md), [current handoff](docs/next-agent.md).
+## Performance and limits
 
-The local set uses the separate DH dormyu.7 adaptation and unchanged official
-Horizon Zoom 2.0.0. Actual near chunks and DH distance are separate. Z holds Zoom;
-Z + wheel changes magnification. [Renderer work](docs/dh-boundary-detail-2026-11-04.md).
+The target is **32 actual chunks with 128 DH chunks at Medium quality**, while
+leaving room for a larger modpack. These are separate render distances.
+On an i5-9400F / RTX 2060 / 16 GiB PC, the final optimized runtime at
+1920×1080, actual distance 32, DH128 Medium, simulation 8 and VSync off measured
+**333.4 FPS stationary** (20 s; P99 3.97 ms,
+worst 6.61 ms) and **319.2 FPS in a 130-block,
+30-second movement at walking speed** (P99 6.30 ms,
+worst 97.94 ms). The movement run still contained a roughly 98 ms hitch. This is a cached, offscreen scene with an aerial
+camera and maxFps260 (unlimited), not first-time exploration or heavy-pack proof.
 
-Short warmed offscreen1080p near32/DH128 Medium/sim8/cap120: new flight
-**119.91 FPS**, P99 8.85 ms, max 13.72 ms.
-Long exploration, older-PC profiles and heavy-pack headroom remain unverified.
-DH vegetation/material/detail transitions can still differ; no universal seamless
-rendering guarantee. [Exact paired test conditions](docs/validation-0.4.0.md).
+The earlier code-equivalent optimized build measured 114.0 FPS stationary and
+99.3 FPS while flying 480 blocks into new terrain in 30 seconds, capped at 120.
+Its native distance-32 preparation took 539.75 seconds; DH was still preparing.
+The only subsequent source change was the one-byte DH version-label correction,
+verified separately. These earlier numbers retain their original runtime hash;
+they are not relabeled as fresh measurements of the final executable.
+Full distant coverage needs additional initial work and can look incomplete
+while filling. A universal, stutter-free 120 FPS result has **not** been established.
+Lower actual distance, DH distance and DH quality are available for slower PCs.
+
+Drainage and lake discovery are bounded; not every valley becomes a river and
+not every coast produces a delta. Some narrow inland reaches and voxel shores
+remain angular. The vegetation policy does not cover every biome or smooth all
+grass, water and sky tint changes. Distant terrain approximates blocks and
+materials. Long exploration, low-end hardware and heavy-pack headroom are not
+established by a short local test. Owner aesthetic acceptance remains separate.
+
+[Build instructions](docs/native-build.md) ·
+[Hydrology](docs/hydrology-development.md) ·
+[Validation and exact scope](docs/validation-0.5.0.md) ·
+[Development handoff](docs/next-agent.md)
 
 Own code is [MIT](LICENSE). Historical Epic Terrain data retains wonderfulaichen's
-MIT notice. DH is a separate LGPL project; Zoom and the mixins-tool patch retain
-their own MIT notices. [Credits and inspirations](CREDITS.md). No game assets,
-resources, accounts, worlds or engine executable are distributed. Independent
-project, not endorsed by Mojang/Microsoft. The src/ drainage library is historical
-research; current native generation lives in mixins/immersive_landscapes.
+MIT notice; DH, Zoom and the native tooling retain their respective notices.
+[Credits and inspirations](CREDITS.md) remain authoritative. Source packages
+contain no game assets, prepared resources, accounts, worlds or engine executable.
+Independent project, not endorsed by Mojang or Microsoft.

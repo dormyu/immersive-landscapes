@@ -1,20 +1,20 @@
 # Immersive Landscapes implementation
 
-## Current verified delivery — IL0.4.0 / DHdormyu.7
+## Current code/runtime evidence — IL 0.5.0 / DHdormyu.16 / Zoom2
 
-Working mod, active development. DormLab IL0.4.0/v3/descriptor7 + unchanged DH7
-and official Zoom2.0.0, Horizon f42ef42, runtimeadd9b6a5. Bounded coastal drainage,
-shared near/far beds/water/liners and persistent seed/recipe-bound DEM cache.
-22 calculation tests/Clippy, three native seed probes and3093 wet centreline
-points, menu/save/old v4-v5-v6 recipes, two Rust clients and installed Prism pass.
-All 5127 owner save files/preferences preserved, control off; Teams untouched.
-Short warmed near32/DH128 Medium1080p/cap120 flight119.91FPS,
-P998.85ms/max13.72ms; not heavy-pack acceptance.
-Full inland catchments, deltas, ecotones and owner visual acceptance remain open.
-Preserve personal maxFps260 (unlimited)/VSync off/near32. New hydrology needs a NEW IL world;
-old recipes are not migrated. No survival/classes or framework work in this scope.
-QA: RustCore/qa/hydrology-v3-2026-11-04; rollback before-hydrology-install.
-Read native-build.json for full hashes. Older version/profile notes below are historical.
+Working native mod, descriptor 10 / vanilla-natural-v6. Code IL224a831,
+DH623dd71, unchanged official Zoom725ff7a, engine f42ef42.
+Final runtime 3bb2fb54bc677e1ba3fe3bfdf4f0b18b034c55fbb2285111ab8831a81da4efcd.
+56 IL tests/44 DH tests and standalone Clippy, native river/lake/ecotone probes,
+actual representative images and final optimized solo/two-client/world-switch/
+near32-DH128 checks pass. Read docs/validation-0.5.0.md for bounded metrics.
+Initial far fill can be incomplete; some channels/tints remain angular/abrupt.
+Owner aesthetic and heavy-pack acceptance are not recorded. Installation and
+Prism happen after this source document: read final release notes and installed
+native-build.json. Preserve the verified fallback until that transaction passes.
+Future structures use saved recipe identity; do not migrate old saves.
+Preserve near32/DH128 Medium/sim8/maxFps260/VSync off/control off.
+Older supplements below are historical and do not replace current pins.
 
 - Deliver a playable **Horizon native mod**, not a replacement engine or a CLI-only
   terrain library. The existing Rust library is an internal component of that mod.
@@ -70,7 +70,7 @@ Read native-build.json for full hashes. Older version/profile notes below are hi
 The owner gave positive feedback about the current v5 world except the transient
 near/far water boundary. This is not complete renderer acceptance. They requested
 the launch graphics profile with near32 and clarified the OptiFine-like feature
-as Zoom. Current DormLab runtime 44f1baf1 adds official Horizon Zoom2.0.0/MIT
+as Zoom. Current DormLab runtime 44f1baf1 adds official Horizon Zoom 2.0.0/MIT
 (unmodified725ff7a source), separate from generation-only Immersive Landscapes.
 Near32/DH128 Medium/sim8/cap120/VSync on/nativeLOD0/workers Auto. Z holds4x,
 the wheel adjusts it. Solo, two-client Zoom and installed Prism checks passed;

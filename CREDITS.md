@@ -5,8 +5,8 @@ GitHub account: [dormyu](https://github.com/dormyu).
 
 ## Original implementation
 
-The native world-creation integration, vanilla-natural density overlay, preset tuning/tools, experimental drainage
-library, tests and preview tools are original code by dormyu, licensed under MIT.
+The native world-creation integration, vanilla-natural density overlay, preset tuning/tools, drainage
+and vegetation-transition code, tests and preview tools are original code by dormyu, licensed under MIT.
 The old height-only prototypes were rejected and do not drive the current native
 preset. Priority-flood, drainage graphs,
 value noise and spatial indexing are general algorithmic techniques; the project
@@ -64,6 +64,9 @@ projects remain references; their Java implementation is not bundled.
   — Deniz Şahin and contributors; Rust port, LGPL-3.0-only. The modpack's local
   adaptation by dormyu is based on commit `53e116bad8bbe55e3e4d76504af721f1260afb81`.
   It remains separate from this repository and retains its upstream notices.
+- [Official Horizon Zoom](https://github.com/horizon-rust/horizon-mods/tree/725ff7a41017c40104273e407264e0ebee87e567/native/zoom)
+  — Ludovic Marie and the Horizon contributors; unchanged native Zoom 2.0.0, MIT.
+  Its source and original license are distributed separately from Immersive Landscapes.
 - Minecraft — Mojang/Microsoft. This project is not affiliated with or endorsed
   by Mojang, Microsoft or the projects named above.
 

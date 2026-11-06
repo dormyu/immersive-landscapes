@@ -1,9 +1,13 @@
 # Native development build
 
-The native adapter targets Horizon `f42ef42` and builds together with the separate
-DH adaptation. Run `tools/native.py generate`, `stage`, `build` or `package`.
-The current Windows workspace uses the sibling `RustCore/development` toolchain,
-temp, cache and build guard. Source `Enter-RustDev.ps1`; set `RUSTUP_TOOLCHAIN=stable`.
+The 0.5.0 adapter targets Horizon f42ef42 / Minecraft 26.3 with separate
+DH dormyu.16 and official Zoom 2.0.0. New worlds use descriptor 10 / vanilla-natural-v6.
+Final runtime `3bb2fb54bc677e1ba3fe3bfdf4f0b18b034c55fbb2285111ab8831a81da4efcd`. Read [validation](validation-0.5.0.md) for exact code pins,
+source match, successful runtime checks and measured performance limits.
+Run tools/native.py generate, stage, build or package as appropriate. On this
+Windows workspace source RustCore/development/scripts/Enter-RustDev.ps1, use
+stable Rust, E: temp/cache/output and one Cargo job. Source bundles require the
+documented patched native tooling and privately prepared game resources.
 
 For the full local three-mod laboratory, pass the existing official Zoom bundle
 as an additional input; the base wrapper supplies DH and this tool supplies IL:
@@ -52,12 +56,14 @@ The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
 documented patched tool / combined build or the tested prebuilt DormLab executable.
 Game resources, accounts and worlds are never part of this source package.
 
-## Native hydrology0.4.0
+## Native generation 0.5.0
 
-The current adapter adds watershed.rs, hydrology.rs, span_ops.rs and nongeneric
-worker/build hooks. New worlds use descriptor7/v3 with eight density JSON files
-(seven terrain overrides plus a watershed marker). See [implementation](hydrology-development.md)
-and [checked scope](validation-0.4.0.md). Saved v4/v5/v6 retain their recipes.
+Current bounded coastal/inland hydrology, conservative delta branches and
+ten-biome ecotones use descriptor 10 and exact rivers_v5/ecotones_v2 markers.
+Read [implementation](hydrology-development.md) and [validation](validation-0.5.0.md).
+Saved4–9 recipes remain unchanged; new features need a new IL world. DH16
+regenerates derived LOD cache only. Historical notes below do not override the
+current manifest or claim migration of existing worlds.
 
 ## Historical density foundation (0.3.1)
 
@@ -87,7 +93,7 @@ prototype descriptors are refused rather than silently changing their terrain.
 
 External presets under `<game>/horizon-mods/immersive-landscapes-preset` are
 copied only into new worlds. They must contain `pack.mcmeta` and `IL-PRESET.json`
-with schema1, descriptor_version5 or6, preset, author, based_on and optional
+with schema1, a descriptor accepted by the current validator, preset, author, based_on and optional
 vanilla_aliases. The marker uses that actual identity. Symbolic links are
 refused. Such presets are an explicit development override, not a claim
 that arbitrary Java data packs are compatible.
@@ -97,7 +103,7 @@ that arbitrary Java data packs are compatible.
 The enabled mod owns the normal-world generation slot, whose creation-screen
 name is now **Immersive Landscapes**. This is the working generation recipe under an
 accurate display name. The persisted Horizon identity remains `minecraft:normal`,
-with descriptor6 and the world-local data pack for new worlds. Old v4/v5 worlds keep
+with descriptor 10 / vanilla-natural-v6 and the world-local data pack for new worlds. Old v4-v9 worlds keep
 their Epic/v1 recipe; this update does not migrate them. Flat, large-biome and other
 slots keep their own behavior.
 
