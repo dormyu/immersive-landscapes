@@ -1,4 +1,4 @@
-"""Read-only v8 preservation and new ecotone recipe checks; no engine build."""
+"""Read-only v8 inputs and combined v10 recipe checks; no engine build."""
 import hashlib
 import json
 from pathlib import Path
@@ -17,8 +17,8 @@ def old(path):
 def main():
     before = json.loads(old(PREFIX + "IL-PRESET.json"))
     current = json.loads((ROOT / PREFIX / "IL-PRESET.json").read_text(encoding="utf-8"))
-    assert before["descriptor_version"] == 8 and current["descriptor_version"] == 9
-    assert current["preset"] == "vanilla-natural-v5"
+    assert before["descriptor_version"] == 8 and current["descriptor_version"] == 10
+    assert current["preset"] == "vanilla-natural-v6"
     compatibility = json.loads((ROOT / "compatibility.json").read_text(encoding="utf-8"))
     assert compatibility["generator_version"] == current["descriptor_version"]
     for name, digest in before["registry_sha256"].items():
@@ -28,20 +28,19 @@ def main():
     assert actual == current["registry_sha256"]
     added = set(actual) - set(before["registry_sha256"])
     density = "data/immersive_landscapes/worldgen/density_function/"
-    assert added == {density + "ecotones_v1.json", density + "ecotone_width.json"}
-    assert json.loads((ROOT / PREFIX / (density + "ecotones_v1.json")).read_text()) == 1.0
+    assert added == {density + "ecotones_v2.json", density + "ecotone_width.json", density + "rivers_v5.json"}
+    for marker in ("ecotones_v2", "rivers_v5"):
+        assert json.loads((ROOT / PREFIX / (density + marker + ".json")).read_text()) == 1.0
     assert json.loads((ROOT / PREFIX / (density + "ecotone_width.json")).read_text()) == 32.0
-    watershed = "mixins/immersive_landscapes/watershed.rs"
-    assert (ROOT / watershed).read_bytes() == old(watershed)
     adapter = (ROOT / "mixins/immersive_landscapes/preset_adapter.rs").read_text()
-    assert "4 | 5 | 6 | 7 | 8 | 9" in adapter
+    assert "4 | 5 | 6 | 7 | 8 | 9 | 10" in adapter
     assert adapter.index("return Ok(());") < adapter.index("let destination = root.join")
     manifest = tomllib.loads((ROOT / "mixins/immersive_landscapes/horizon-mixin.toml").read_text())
     assert manifest["mod"]["version"] == "0.5.0-dev.1"
     ids = [i["id"] for i in manifest["injection"]]
     assert len(ids) == len(set(ids))
     print(json.dumps({"passed": True, "base": BASE, "unchanged_v8_density_inputs": len(before["registry_sha256"]),
-                      "new_descriptor": current["descriptor_version"], "watershed_unchanged": True,
+                      "new_descriptor": current["descriptor_version"], "independent_opt_in_markers": True,
                       "scope": "source and recipe only; native/game verification remains required"}))
 
 
