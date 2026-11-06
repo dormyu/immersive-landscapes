@@ -960,6 +960,28 @@ impl Basin {
                         {
                             return false;
                         }
+                        // A narrow rock bank can fall between coarse DEM
+                        // samples. Check the native terrain across the full
+                        // wet width before approving the distributary.
+                        let before = bezier(controls, (t - 0.01).max(0.));
+                        let after = bezier(controls, (t + 0.01).min(1.));
+                        let tangent = [after[0] - before[0], after[1] - before[1]];
+                        let length = tangent[0].hypot(tangent[1]).max(0.001);
+                        let margin =
+                            (start_segment.half_width * 0.6 * (1. + 0.15 * t)).max(1.2) + 3.;
+                        if [-margin, 0., margin].into_iter().any(|offset| {
+                            let sample = [
+                                p[0] - tangent[1] / length * offset,
+                                p[1] + tangent[0] / length * offset,
+                            ];
+                            !valid(sample)
+                                || terrain
+                                    .land(sample[0].round() as i32, sample[1].round() as i32)
+                                    .height
+                                    > water + 5.
+                        }) {
+                            return false;
+                        }
                         if step <= 5 || step >= 22 {
                             return true;
                         }
@@ -1661,6 +1683,27 @@ mod tests {
             basin.segments.len(),
             original.len(),
             "do not fabricate a delta through a cliff"
+        );
+        // The coarse lattice can miss a narrow ridge beside the centreline.
+        // Native cross-section probes must still reject that route.
+        #[derive(Debug)]
+        struct FineBanks;
+        impl Terrain for FineBanks {
+            fn land(&self, x: i32, z: i32) -> Land {
+                let mut land = LowCoast.land(x, z);
+                if (20..90).contains(&x) && (3..=10).contains(&z.abs()) {
+                    land.height += 20.;
+                }
+                land
+            }
+        }
+        let mut fine = Basin::compile(coast, config(), &LowCoast, &[coast]);
+        fine.segments = original.clone();
+        fine.branch_deltas(&FineBanks, &[coast]);
+        assert_eq!(
+            fine.segments.len(),
+            original.len(),
+            "native narrow banks veto the coarse-DEM route"
         );
     }
 

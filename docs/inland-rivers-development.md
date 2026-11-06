@@ -23,11 +23,13 @@ A substantial river on a low marine plain can split into a distributary. The
 branch connects to the existing river, shares its initial water level, descends to
 the sea, and takes a fraction of the trunk's discharge. Both resulting widths are
 adjusted. Branches are rejected at high cliffs, inland mouths, basin boundaries
-and conflicting channels. At most two branches are planned per bounded basin.
+and conflicting channels. Native cross-section probes check both banks as well as
+the centreline, so narrow ridges missed by the coarse drainage grid also veto a
+branch. At most two branches are planned per bounded basin.
 
 Current evidence: 41 calculation tests and Clippy pass, including native-lake
 levels, rejection of an isolated water block, shared fork discharge and rejection
-of a cliff-cutting delta. These are calculation checks. The modified native
+of cliff-cutting deltas and narrow rock banks. These are calculation checks. The modified native
 adapter, actual-game river shapes, scalar/grid parity, cold generation cost and
 two-client behavior have not yet been verified for this branch.
 
