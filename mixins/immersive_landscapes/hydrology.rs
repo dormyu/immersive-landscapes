@@ -668,7 +668,12 @@ pub fn fill_surface(
     if atlas.world.config.natural {
         if let Some(plan) = raster_column(atlas, p, paint, x, z) {
             sample.height = plan.floor;
-            sample.state = plan.top;
+            // Uncut columns keep the engine's climate-aware surface material,
+            // just like the real chunk and its solid LOD spans. The raw native
+            // sampler supplies geometry, not a replacement riparian material.
+            if plan.cut {
+                sample.state = plan.top;
+            }
             sample.water = (plan.water > plan.floor).then_some((plan.water, paint.water));
         }
         return;
