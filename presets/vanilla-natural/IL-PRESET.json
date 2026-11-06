@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "preset": "vanilla-natural-v4",
+  "preset": "vanilla-natural-v5",
   "author": "dormyu",
   "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
   "generation_family": "vanilla-natural",
-  "descriptor_version": 8,
+  "descriptor_version": 9,
   "vanilla_aliases": {
     "immersive_landscapes:vanilla_offset": "minecraft:overworld/offset",
     "immersive_landscapes:vanilla_base_3d": "minecraft:overworld/base_3d_noise"
@@ -12,8 +12,8 @@
   "preserves": [
     "vanilla continents and climate scale",
     "vanilla height limits and sea level",
-    "biomes and surface rules",
-    "trees and vegetation",
+    "gameplay biome identities",
+    "native vegetation recipes",
     "caves and ores",
     "structures",
     "Nether and End"
@@ -26,15 +26,20 @@
     "terrain and biome placement consume the same fields",
     "base 3D rock-detail amplitude .35 to suppress detached surface masses",
     "seed-bound coastal watershed graphs and connected graded channels in native Rust",
-    "shared riverbed and water profiles for actual terrain and distant sampling"
+    "shared riverbed and water profiles for actual terrain and distant sampling",
+    "versioned forest/plains and taiga/meadow vegetation transitions",
+    "bounded dry-soil ecotone top policy shared by real and distant terrain"
   ],
   "known_limits": [
     "Coastal drainage coverage is bounded; not every pre-existing noise valley is converted",
     "Delta branches and full inland catchments are not implemented",
-    "Vanilla biome identity and vegetation boundaries remain discrete",
+    "Ecotone implementation is isolated and awaiting native/runtime validation",
+    "Only forest/plains and taiga/meadow pairs are covered; other biome boundaries remain discrete",
     "Native near/far surface sampling differences still require checking"
   ],
   "registry_sha256": {
+    "data/immersive_landscapes/worldgen/density_function/ecotone_width.json": "74f7a31ab6c166f6a676abe9b030445200bbb31ae31ef468245ecd82e575c872",
+    "data/immersive_landscapes/worldgen/density_function/ecotones_v1.json": "5717e7c840171019a4eeab5b79a7f894a4986eaff93d04ec5b12c9a189f594bf",
     "data/immersive_landscapes/worldgen/density_function/range_field.json": "c8c1bacc310e6789bffd97ce67982fc8805ea47e08347630ed825ae74d4d94a3",
     "data/immersive_landscapes/worldgen/density_function/river_bank_scale.json": "66e4c000f2000eb1cca164f97c441e14d438ca2599c8e79f4de6ecade0de8b32",
     "data/immersive_landscapes/worldgen/density_function/river_depth_scale.json": "5717e7c840171019a4eeab5b79a7f894a4986eaff93d04ec5b12c9a189f594bf",

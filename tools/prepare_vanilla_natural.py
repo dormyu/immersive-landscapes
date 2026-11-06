@@ -67,6 +67,9 @@ def recipe():
         # Presence enables the Rust watershed adapter only for this saved
         # recipe. Its value is an ordinary unused vanilla constant.
         "data/immersive_landscapes/worldgen/density_function/watershed_v1.json": 2.0,
+        # Separate opt-in; saved descriptor8 has neither file and is unchanged.
+        "data/immersive_landscapes/worldgen/density_function/ecotones_v1.json": 1.0,
+        "data/immersive_landscapes/worldgen/density_function/ecotone_width.json": 32.0,
         "data/immersive_landscapes/worldgen/density_function/river_meander_amplitude.json":14.0,
         "data/immersive_landscapes/worldgen/density_function/river_meander_scale.json":96.0,
         "data/immersive_landscapes/worldgen/density_function/river_width_scale.json":1.0,
@@ -96,13 +99,13 @@ def main():
         "description": "Immersive Landscapes: vanilla terrain with coherent ranges and graded valleys, by dormyu",
         "pack_format": 121, "min_format": 121, "max_format": 121}}, indent=2) + "\n", encoding="utf-8", newline="\n")
     metadata = {
-        "schema": 1, "preset": "vanilla-natural-v4", "author": "dormyu",
+        "schema": 1, "preset": "vanilla-natural-v5", "author": "dormyu",
         "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
-        "generation_family": "vanilla-natural", "descriptor_version": 8,
+        "generation_family": "vanilla-natural", "descriptor_version": 9,
         "vanilla_aliases": {"immersive_landscapes:vanilla_offset": "minecraft:overworld/offset",
                             "immersive_landscapes:vanilla_base_3d": "minecraft:overworld/base_3d_noise"},
         "preserves": ["vanilla continents and climate scale", "vanilla height limits and sea level",
-                      "biomes and surface rules", "trees and vegetation", "caves and ores",
+                      "gameplay biome identities", "native vegetation recipes", "caves and ores",
                       "structures", "Nether and End"],
         "changes": ["coherent low-frequency component in the shared mountain/river field",
                     "gentler erosion-field variation across mountain regions",
@@ -111,10 +114,13 @@ def main():
                     "terrain and biome placement consume the same fields",
                     "base 3D rock-detail amplitude .35 to suppress detached surface masses",
                     "seed-bound coastal watershed graphs and connected graded channels in native Rust",
-                    "shared riverbed and water profiles for actual terrain and distant sampling"],
+                    "shared riverbed and water profiles for actual terrain and distant sampling",
+                    "versioned forest/plains and taiga/meadow vegetation transitions",
+                    "bounded dry-soil ecotone top policy shared by real and distant terrain"],
         "known_limits": ["Coastal drainage coverage is bounded; not every pre-existing noise valley is converted",
                          "Delta branches and full inland catchments are not implemented",
-                         "Vanilla biome identity and vegetation boundaries remain discrete",
+                         "Ecotone implementation is isolated and awaiting native/runtime validation",
+                         "Only forest/plains and taiga/meadow pairs are covered; other biome boundaries remain discrete",
                          "Native near/far surface sampling differences still require checking"],
         "registry_sha256": {name: hashlib.sha256((OUT/name).read_bytes()).hexdigest() for name in sorted(files)},
     }

@@ -101,6 +101,16 @@ fn immersive_landscapes_hydrology_build(
                 .default_state("minecraft:water")
                 .expect("native water state"),
         );
+        let ecotone_width = immersive_landscapes_ecotone_settings::width(data);
+        if natural
+            && let Some(width) = ecotone_width
+            && let Some(atlas) =
+                h::for_pipeline(std::sync::Arc::as_ptr(&generator.pipeline) as *const () as usize)
+        {
+            let _ = atlas
+                .ecotones
+                .set(crate::worldgen::immersive_landscapes_ecotone_runtime::Pass::new(data, width));
+        }
     }
     drop(scope);
     std::ops::ControlFlow::Break(result)

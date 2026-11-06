@@ -172,6 +172,7 @@ pub struct Atlas {
     pub cache: Option<PathBuf>,
     world: World<NativeTerrain>,
     native_surface: Arc<OnceLock<NativeSurface>>,
+    pub ecotones: OnceLock<super::immersive_landscapes_ecotone_runtime::Pass>,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -183,6 +184,9 @@ struct CachedProfile {
 }
 
 impl Atlas {
+    pub fn native_land(&self, x: i32, z: i32) -> Option<SurfaceSample> {
+        self.native_surface.get()?.get(x, z).map(|v| v.0)
+    }
     fn profile(&self, x: i32, z: i32) -> Option<Profile> {
         PROFILES.with_borrow_mut(|slots| {
             let hash = (x as u32).wrapping_mul(0x9e3779b9)
@@ -354,6 +358,7 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
             cache: frame.cache.clone(),
             world,
             native_surface,
+            ecotones: OnceLock::new(),
         });
         frame.atlas = Some(atlas.clone());
         log::info!(

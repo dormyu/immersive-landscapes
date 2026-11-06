@@ -1,6 +1,6 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.4.1"
+version = "0.5.0-dev.1"
 priority = 110
 
 [compatibility]
@@ -168,4 +168,78 @@ bindings = [
   { name = "z", ty = "i32", value = "z" },
   { name = "width", ty = "i32", value = "width" },
   { name = "side", ty = "usize", value = "side" },
+]
+
+[[module]]
+id = "ecotone_policy"
+file = "crates/horizon-world/src/worldgen.rs"
+name = "immersive_landscapes_ecotones"
+source = "ecotones.rs"
+visibility = "pub"
+
+[[module]]
+id = "ecotone_runtime"
+file = "crates/horizon-world/src/worldgen.rs"
+name = "immersive_landscapes_ecotone_runtime"
+source = "ecotone_runtime.rs"
+visibility = "pub"
+
+[[module]]
+id = "ecotone_plan"
+file = "crates/horizon-world/src/worldgen/decoration.rs"
+name = "immersive_landscapes_ecotone_plan"
+source = "ecotone_plan.rs"
+visibility = "pub(crate)"
+
+[[module]]
+id = "ecotone_settings"
+file = "crates/horizon-world/src/worldgen/generator.rs"
+name = "immersive_landscapes_ecotone_settings"
+source = "ecotone_settings.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "ecotone_plan_build"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::generator_decoration::Decoration::new_with"
+helper = "ecotone_plan_build.rs"
+bindings = [
+  { name = "data", ty = "&std::sync::Arc<GeneratorData>", value = "data" },
+  { name = "source", ty = "&ResolvedBiomeSource", value = "source" },
+  { name = "with_features", ty = "bool", value = "with_features" },
+]
+
+[[injection]]
+id = "ecotone_decorate"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::generator::GeneratorWorker::decorate"
+helper = "ecotone_decorate.rs"
+bindings = [
+  { name = "worker", ty = "&mut GeneratorWorker", value = "&mut *self" },
+  { name = "region", ty = "&mut [ProtoChunk; 9]", value = "region" },
+]
+
+[[injection]]
+id = "ecotone_schedule"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::generator_decoration::<World<'_> as DecorationWorld>::chunk_biomes"
+helper = "ecotone_schedule.rs"
+bindings = [
+  { name = "chunk", ty = "ChunkPos", value = "chunk" },
+  { name = "world", ty = "&mut World<'_>", value = "&mut *self" },
+]
+
+[[injection]]
+id = "ecotone_feature"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::generator_decoration::<World<'_> as PlacementContext>::biome_allows_feature"
+helper = "ecotone_feature.rs"
+bindings = [
+  { name = "world", ty = "&mut World<'_>", value = "&mut *self" },
+  { name = "position", ty = "[i32; 3]", value = "position" },
+  { name = "feature", ty = "FeatureIdentity", value = "feature" },
 ]

@@ -13,6 +13,13 @@ fn immersive_landscapes_hydrology_surface(
             x,
             z,
         );
+        crate::worldgen::immersive_landscapes_ecotone_runtime::fill_surface(
+            &mut value,
+            &atlas,
+            worker.pipeline.data().registry,
+            x,
+            z,
+        );
     }
     value
 }

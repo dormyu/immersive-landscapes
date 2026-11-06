@@ -18,6 +18,17 @@ fn immersive_landscapes_hydrology_grid(
                 width,
                 side,
             );
+            if atlas.ecotones.get().is_some() {
+                for (i, column) in columns.iter_mut().enumerate() {
+                    crate::worldgen::immersive_landscapes_ecotone_runtime::fill_column(
+                        column,
+                        &atlas,
+                        worker.pipeline.data().registry,
+                        x + (i % side) as i32 * width,
+                        z + (i / side) as i32 * width,
+                    );
+                }
+            }
         }
         columns
     })

@@ -13,6 +13,12 @@ fn immersive_landscapes_hydrology_proto(
             .map_err(|error| {
                 resource(format!("Immersive Landscapes river placement: {error:?}"))
             })?;
+            crate::worldgen::immersive_landscapes_ecotone_runtime::fill_proto(
+                &mut proto,
+                &atlas,
+                worker.pipeline.data().registry,
+            )
+            .map_err(|error| resource(format!("Immersive Landscapes ecotone ground: {error:?}")))?;
         }
         Ok(proto)
     })

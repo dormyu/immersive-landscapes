@@ -28,7 +28,7 @@ def main():
     meta=json.loads((out/'IL-PRESET.json').read_text(encoding='utf-8'))
     meta['registry_sha256']={p.relative_to(out).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((out/'data').rglob('*.json'))}
     identity=hashlib.sha256(json.dumps(meta['registry_sha256'],sort_keys=True).encode()).hexdigest()[:10]
-    meta['preset']='vanilla-natural-v4-tuned-'+identity
+    meta['preset']=meta['preset'].split('-tuned-')[0]+'-tuned-'+identity
     meta['river_tuning']=chosen
     (out/'IL-PRESET.json').write_text(json.dumps(meta,indent=2)+'\n',encoding='utf-8',newline='\n')
     print(json.dumps({'directory':str(out),'preset':meta['preset'],'descriptor':meta['descriptor_version'],'settings':chosen}))
