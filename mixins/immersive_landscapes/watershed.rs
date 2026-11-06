@@ -217,6 +217,8 @@ pub struct Coast {
     pub key: Key,
     pub x: i32,
     pub z: i32,
+    /// Only fallback roots may terminate in a native inland lake.
+    pub inland_level: Option<f64>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -421,10 +423,26 @@ fn bezier(points: [[f64; 2]; 4], t: f64) -> [f64; 2] {
     })
 }
 
-fn nearest(point: [f64; 2], roots: &[Coast]) -> Option<(Coast, f64, f64)> {
+fn nearest(point: [f64; 2], roots: &[Coast], config: Config) -> Option<(Coast, f64, f64)> {
+    // Inland receivers extend drainage beyond the coastal catchments. They
+    // must not steal an established coast's drainage area or introduce a new
+    // dry Voronoi boundary through a river that already reaches the sea.
+    let marine_distance = if config.advanced_rivers {
+        roots
+            .iter()
+            .filter(|c| c.inland_level.is_none())
+            .map(|c| (point[0] - f64::from(c.x)).hypot(point[1] - f64::from(c.z)))
+            .fold(f64::INFINITY, f64::min)
+    } else {
+        f64::INFINITY
+    };
+    let marine = marine_distance < f64::from(config.radius);
     let mut best: Option<(Coast, f64)> = None;
     let mut second = f64::INFINITY;
     for &c in roots {
+        if config.advanced_rivers && c.inland_level.is_none() != marine {
+            continue;
+        }
         let d = (point[0] - f64::from(c.x)).hypot(point[1] - f64::from(c.z));
         if best.is_none_or(|(b, old)| d < old || (d == old && c.key < b.key)) {
             if let Some((_, old)) = best {
@@ -435,7 +453,14 @@ fn nearest(point: [f64; 2], roots: &[Coast]) -> Option<(Coast, f64, f64)> {
             second = second.min(d);
         }
     }
-    best.map(|(c, d)| (c, d, second))
+    best.map(|(c, d)| {
+        if config.advanced_rivers && c.inland_level.is_some() {
+            // Reuse the existing bank fade across the coastal radius instead
+            // of starting an inland channel abruptly at that boundary.
+            second = second.min(d + (marine_distance - f64::from(config.radius)).max(0.));
+        }
+        (c, d, second)
+    })
 }
 
 impl Basin {
@@ -485,41 +510,25 @@ impl Basin {
         } else {
             sample()
         };
-        let inland_receiver = config
-            .advanced_rivers
-            .then(|| terrain.inland_water(coast.x, coast.z))
-            .flatten();
+        let inland_receiver = coast.inland_level.filter(|_| config.advanced_rivers);
+        let mut native_lake = vec![false; count];
         for (i, land) in dem.into_iter().enumerate() {
             let p = out.point(i);
             out.raw[i] = land.height;
-            out.filled[i] = if config.advanced_rivers {
-                land.height
-            } else {
-                land.height.max(config.sea)
-            };
+            out.filled[i] = land.height.max(config.sea);
             out.ocean[i] = land.ocean && land.height <= config.sea;
-            if config.advanced_rivers {
-                if out.ocean[i] {
-                    out.filled[i] = config.sea;
-                } else if (land.height < config.sea + 1.
-                    || inland_receiver.is_some_and(|level| {
-                        land.height < level + 1.
-                            && (p[0] - f64::from(coast.x))
-                                .abs()
-                                .max((p[1] - f64::from(coast.z)).abs())
-                                <= 192.
-                    }))
-                    && let Some(water) = terrain.inland_water(p[0] as i32, p[1] as i32)
-                    && water > land.height
-                {
-                    // `ocean` is the historic receiver mask. A native lake is
-                    // now also a valid terminal, at its OWN level. Native sea
-                    // water in a river/beach biome must never become a raised lake.
-                    out.ocean[i] = true;
-                    out.filled[i] = water;
-                }
+            if let Some(level) = inland_receiver
+                && land.height < level + 1.
+                && (p[0] - f64::from(coast.x))
+                    .abs()
+                    .max((p[1] - f64::from(coast.z)).abs())
+                    <= 192.
+            {
+                native_lake[i] = terrain
+                    .inland_water(p[0] as i32, p[1] as i32)
+                    .is_some_and(|water| (water - level).abs() < 0.25 && water > land.height);
             }
-            if let Some((owner, d, other)) = nearest(p, roots) {
+            if let Some((owner, d, other)) = nearest(p, roots, config) {
                 let (edge_fade, radial_fade) = config.fades();
                 let curve_margin = if config.natural { 2. } else { 0. };
                 // Publish drainage only inside the fully carved core. Its
@@ -528,6 +537,22 @@ impl Basin {
                 out.active[i] = owner.key == coast.key
                     && d < f64::from(config.radius) - radial_fade - curve_margin
                     && other - d > config.margin + edge_fade + curve_margin * 2.;
+            }
+        }
+        if let Some(level) = inland_receiver {
+            // Only water connected to the selected root is a terminal.
+            // Treating every native pond as one prematurely intercepted the
+            // coastal runoff, erased rivers and reopened filled lake bottoms.
+            let centre = (n / 2) * n + n / 2;
+            let mut pending = vec![centre];
+            while let Some(i) = pending.pop() {
+                if !native_lake[i] {
+                    continue;
+                }
+                native_lake[i] = false;
+                out.ocean[i] = true;
+                out.filled[i] = level;
+                pending.extend(neighbors(i, n).filter(|&j| native_lake[j]));
             }
         }
         let mut queue = BinaryHeap::new();
@@ -699,7 +724,7 @@ impl Basin {
         }
         let (edge_fade, radial_fade) = self.config.fades();
         let valid = |p: [f64; 2]| {
-            nearest(p, roots).is_some_and(|(owner, d, other)| {
+            nearest(p, roots, self.config).is_some_and(|(owner, d, other)| {
                 owner.key == self.coast.key
                     && d < f64::from(self.config.radius) - radial_fade - 1.
                     && other - d > self.config.margin + edge_fade + 2.
@@ -858,6 +883,9 @@ impl Basin {
     /// Add a distributary only where a substantial river meets a low, open
     /// marine plain. A cliff coast or an inland lake never gets a forced fork.
     fn branch_deltas(&mut self, terrain: &dyn Terrain, roots: &[Coast]) {
+        if self.coast.inland_level.is_some() {
+            return;
+        }
         let mut mouths: Vec<_> = self
             .segments
             .iter()
@@ -871,7 +899,7 @@ impl Basin {
         let coast_key = self.coast.key;
         let (edge_fade, radial_fade) = config.fades();
         let valid = |p: [f64; 2]| {
-            nearest(p, roots).is_some_and(|(owner, d, other)| {
+            nearest(p, roots, self.config).is_some_and(|(owner, d, other)| {
                 owner.key == coast_key
                     && d < f64::from(config.radius) - radial_fade - 2.
                     && other - d > config.margin + edge_fade + 4.
@@ -1293,6 +1321,7 @@ impl<T: Terrain> World<T> {
                         }
                     }
                     let candidate = Coast {
+                        inland_level: None,
                         key,
                         x: wet[0],
                         z: wet[1],
@@ -1398,6 +1427,7 @@ impl<T: Terrain> World<T> {
                     best = Some((
                         score,
                         Coast {
+                            inland_level: Some(level),
                             key,
                             x: wet[0],
                             z: wet[1],
@@ -1494,7 +1524,7 @@ impl<T: Terrain> World<T> {
 
     pub fn sample(&self, x: i32, z: i32) -> Option<Profile> {
         let roots = self.query_roots(x, z);
-        let (coast, distance, second) = nearest([f64::from(x), f64::from(z)], &roots)?;
+        let (coast, distance, second) = nearest([f64::from(x), f64::from(z)], &roots, self.config)?;
         if distance >= f64::from(self.config.radius) || second - distance < self.config.margin {
             return None;
         }
@@ -1616,6 +1646,84 @@ mod tests {
     }
 
     #[test]
+    fn inland_roots_extend_but_do_not_fragment_existing_coastal_drainage() {
+        let config = Config {
+            advanced_rivers: true,
+            radius: 512,
+            ..config()
+        };
+        let coast = Coast {
+            key: Key(0, 0),
+            x: -4,
+            z: 0,
+            inland_level: None,
+        };
+        let lake = Coast {
+            key: Key(2, 0),
+            x: 384,
+            z: 0,
+            inland_level: Some(96.),
+        };
+        let original = Basin::compile(coast, config, &CoastHill, &[coast]);
+        let extended = Basin::compile(coast, config, &CoastHill, &[coast, lake]);
+        assert!(!original.segments.is_empty());
+        assert_eq!(
+            original.active, extended.active,
+            "a nearby lake must not cut a new dry border through coastal rivers"
+        );
+        assert_eq!(original.parent, extended.parent);
+        assert_eq!(original.drains_ocean, extended.drains_ocean);
+        assert_eq!(original.discharge, extended.discharge);
+        assert_eq!(original.segments.len(), extended.segments.len());
+        let (owner, distance, second) = nearest([600., 0.], &[coast, lake], config).unwrap();
+        assert_eq!(
+            owner.key, lake.key,
+            "inland drainage remains available beyond the coast's range"
+        );
+        assert!(second - distance > config.margin);
+    }
+
+    #[test]
+    fn native_pond_inside_marine_catchment_is_not_a_premature_terminal() {
+        #[derive(Debug)]
+        struct Pond(bool);
+        impl Terrain for Pond {
+            fn land(&self, x: i32, z: i32) -> Land {
+                let mut land = CoastHill.land(x, z);
+                if f64::from(x - 128).hypot(f64::from(z - 64)) < 24. {
+                    land.height = 58.;
+                    land.ocean = false;
+                }
+                land
+            }
+            fn inland_water(&self, x: i32, z: i32) -> Option<f64> {
+                (self.0 && f64::from(x - 128).hypot(f64::from(z - 64)) < 24.).then_some(63.)
+            }
+        }
+        let config = Config {
+            advanced_rivers: true,
+            ..config()
+        };
+        let coast = Coast {
+            key: Key(0, 0),
+            x: 0,
+            z: 0,
+            inland_level: None,
+        };
+        let unfilled = Basin::compile(coast, config, &Pond(false), &[coast]);
+        let native_water = Basin::compile(coast, config, &Pond(true), &[coast]);
+        assert_eq!(
+            unfilled.ocean, native_water.ocean,
+            "a pre-existing inland puddle must still drain through the basin spill"
+        );
+        assert_eq!(unfilled.filled, native_water.filled);
+        assert_eq!(unfilled.discharge, native_water.discharge);
+        assert_eq!(unfilled.segments.len(), native_water.segments.len());
+        assert!(native_water.segments.iter().any(|s| s.mouth));
+        assert!((native_water.input - native_water.output).abs() < 1e-8);
+    }
+
+    #[test]
     fn low_coast_delta_splits_flow_but_does_not_cut_a_cliff() {
         #[derive(Debug)]
         struct LowCoast;
@@ -1628,6 +1736,7 @@ mod tests {
             }
         }
         let coast = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: 0,
             z: 0,
@@ -1710,6 +1819,7 @@ mod tests {
     #[test]
     fn natural_channels_bend_and_keep_their_confluence_vertices() {
         let coast = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: -4,
             z: 0,
@@ -1765,6 +1875,7 @@ mod tests {
     #[test]
     fn natural_headwaters_start_shallow_instead_of_a_full_depth_pit() {
         let coast = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: -4,
             z: 0,
@@ -1809,6 +1920,7 @@ mod tests {
             }
         }
         let coast = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: -4,
             z: 0,
@@ -1967,6 +2079,7 @@ mod tests {
 
     fn lake_fixture() -> Basin {
         let c = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: 0,
             z: 0,
@@ -2123,6 +2236,7 @@ mod tests {
     #[test]
     fn flood_routes_conserve_and_descend_to_receiving_water() {
         let c = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: -4,
             z: 0,
@@ -2221,6 +2335,7 @@ mod tests {
     #[test]
     fn a_lower_riverbank_cannot_erase_a_nearby_wet_channel() {
         let c = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: 0,
             z: 0,
@@ -2300,6 +2415,7 @@ mod tests {
     #[test]
     fn a_filled_lake_covers_a_crossing_channel_without_recutting_its_bottom() {
         let c = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: 0,
             z: 0,
@@ -2383,6 +2499,7 @@ mod tests {
         ));
         let config = config();
         let c = Coast {
+            inland_level: None,
             key: Key(0, 0),
             x: 0,
             z: 0,

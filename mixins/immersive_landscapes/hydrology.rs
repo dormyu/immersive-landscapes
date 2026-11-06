@@ -209,9 +209,10 @@ impl Atlas {
                         .map(|w| NativeWater {
                             ground: s.height,
                             water: w.0,
-                            ocean: ocean
-                                || (self.world.config.advanced_rivers
-                                    && w.0 <= self.world.config.sea as i32),
+                            // Sea-level inland ponds are not automatically
+                            // marine water. Keep their planned spill level;
+                            // native ocean biomes retain the exact sea level.
+                            ocean,
                         })
                 });
                 *p = super::immersive_landscapes_watershed::reconcile_native_water(
