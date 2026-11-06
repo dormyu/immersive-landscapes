@@ -1,8 +1,10 @@
 # Immersive Landscapes
 
 > **0.4.0 has a confirmed terrain defect:** forest shorelines can be perforated
-> and river cuts can look artificial. Visual acceptance failed. This branch tests
-> the0.4.1 correction; [cause, changes and pending checks](docs/river-form-fix.md).
+> and river cuts can look artificial. This branch prepares **0.5.0**, including
+> corrected lake outlets, less regular river reaches, inland drainage and biome
+> transitions. Native and visual release checks are in progress; it is not yet
+> installed or released. [Original defect report](docs/river-form-fix.md).
 
 Familiar Minecraft terrain with coherent mountain regions, graded valleys and
 connected coastal rivers. A native mod for the **Horizon Rust client and Rust

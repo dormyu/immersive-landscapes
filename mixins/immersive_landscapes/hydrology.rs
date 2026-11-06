@@ -184,6 +184,14 @@ struct CachedProfile {
 }
 
 impl Atlas {
+    pub fn raster_floor(&self, profile: Profile, native_ground: i32) -> i32 {
+        profile.raster_floor_versioned(
+            native_ground,
+            self.world.config.natural,
+            self.world.config.advanced_rivers,
+        )
+    }
+
     pub fn native_land(&self, x: i32, z: i32) -> Option<SurfaceSample> {
         self.native_surface.get()?.get(x, z).map(|v| v.0)
     }
@@ -558,7 +566,7 @@ struct RasterColumn {
 
 fn raster_column(atlas: &Atlas, p: Profile, paint: Paint, x: i32, z: i32) -> Option<RasterColumn> {
     let (native, _) = atlas.native_surface.get()?.get(x, z)?;
-    let floor = p.raster_floor(native.height, true);
+    let floor = atlas.raster_floor(p, native.height);
     let water = p.voxel_water(true);
     let cut = floor < native.height;
     let bed_finish = (cut || !p.lake) && water > floor;

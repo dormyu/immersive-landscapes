@@ -185,7 +185,7 @@ fn main() -> Result<(), Error> {
                 timings[3] += t.elapsed().as_secs_f64();
                 let planned = profile.voxel_water(true);
                 let original_surface = plain_worker.surface_column(p[0], p[1]).0.unwrap();
-                let floor = profile.raster_floor(original_surface.height, true);
+                let floor = atlas.raster_floor(profile, original_surface.height);
                 let liner_required = floor < original_surface.height;
                 let actual_ground = solid_ground(&proto, p[0] & 15, p[1] & 15);
                 let native_ground = solid_ground(&plain_proto, p[0] & 15, p[1] & 15);

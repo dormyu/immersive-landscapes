@@ -139,7 +139,7 @@ fn main() -> Result<(), Error> {
                     let mut mode = "unaffected";
                     let mut expected = None;
                     if let (Some(p), Some(base), Some(surface)) = (profile, old_far, far) {
-                        let floor = p.raster_floor(base.height, true);
+                        let floor = atlas.raster_floor(p, base.height);
                         let water = p.voxel_water(true);
                         let target_water = (water > floor).then_some(water);
                         let cut = floor < base.height;

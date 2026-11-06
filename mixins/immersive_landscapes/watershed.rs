@@ -293,6 +293,15 @@ impl Profile {
     }
 
     pub fn raster_floor(self, native_ground: i32, natural: bool) -> i32 {
+        self.raster_floor_versioned(native_ground, natural, false)
+    }
+
+    pub fn raster_floor_versioned(
+        self,
+        native_ground: i32,
+        natural: bool,
+        advanced_rivers: bool,
+    ) -> i32 {
         if !natural {
             return self.voxel_floor(false);
         }
@@ -301,7 +310,14 @@ impl Profile {
             // A coarse DEM may miss a low native saddle on the channel route.
             // Join it at the lake level, never restore the older deep river bed
             // through an existing lake or turn a high island into a deep slot.
-            if self.channel_core && native_ground >= water && native_ground - water <= 3 {
+            // v10 routes include inland lake outlets. The native seed
+            // 4312740467388825473 has a four-column saddle at y74..75
+            // across a y70 lake; the legacy three-block limit left its two
+            // water components disconnected. Bound the new cut to six blocks
+            // above water (at most seven excavated), and keep v8/v9 unchanged.
+            let saddle_height = if advanced_rivers { 6 } else { 3 };
+            if self.channel_core && native_ground >= water && native_ground - water <= saddle_height
+            {
                 return water - 1;
             }
             return native_ground;
@@ -2018,6 +2034,27 @@ mod tests {
             65,
             "do not wet a dry cross-section"
         );
+    }
+
+    #[test]
+    fn advanced_lake_outlet_connects_native_saddle_without_recutting_lake() {
+        let mut p = river_profile();
+        p.lake = true;
+        p.water = 70.;
+        p.bed = 42.;
+        assert!(p.channel_core);
+        for ground in [74, 75, 76] {
+            assert_eq!(p.raster_floor_versioned(ground, true, true), 69);
+            assert_eq!(p.raster_floor_versioned(ground, true, false), ground);
+        }
+        assert_eq!(p.raster_floor_versioned(77, true, true), 77);
+        assert_eq!(p.raster_floor_versioned(47, true, true), 47);
+        assert_eq!(
+            p.raster_floor_versioned(75, false, true),
+            p.raster_floor(75, false)
+        );
+        p.channel_core = false;
+        assert_eq!(p.raster_floor_versioned(75, true, true), 75);
     }
 
     #[test]
