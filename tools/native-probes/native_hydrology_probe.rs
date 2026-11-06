@@ -186,7 +186,7 @@ fn main() -> Result<(), Error> {
                 let planned = profile.voxel_water(true);
                 let original_surface = plain_worker.surface_column(p[0], p[1]).0.unwrap();
                 let floor = profile.raster_floor(original_surface.height, true);
-                let liner_required = !profile.lake && floor < original_surface.height;
+                let liner_required = floor < original_surface.height;
                 let actual_ground = solid_ground(&proto, p[0] & 15, p[1] & 15);
                 let native_ground = solid_ground(&plain_proto, p[0] & 15, p[1] & 15);
                 let block = proto.block_name(p[0] & 15, planned - 1, p[1] & 15);

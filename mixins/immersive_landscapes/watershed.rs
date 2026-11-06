@@ -229,6 +229,8 @@ pub struct Profile {
     pub raw: f64,
     /// Keep the existing terrain below this water body, including native sea.
     pub lake: bool,
+    /// A planned channel still crosses this column if a lake overlays its bed.
+    pub channel_core: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -257,6 +259,7 @@ pub fn reconcile_native_water(mut p: Profile, native: Option<NativeWater>, sea: 
         // Existing native water already has a real bottom/material palette.
         // The renderer/final terrain pass must not recut it as a river liner.
         p.lake = true;
+        p.channel_core = false;
     }
     p
 }
@@ -283,6 +286,13 @@ impl Profile {
             return self.voxel_floor(false);
         }
         if self.lake {
+            let water = self.voxel_water(true);
+            // A coarse DEM may miss a low native saddle on the channel route.
+            // Join it at the lake level, never restore the older deep river bed
+            // through an existing lake or turn a high island into a deep slot.
+            if self.channel_core && native_ground >= water && native_ground - water <= 3 {
+                return water - 1;
+            }
             return native_ground;
         }
         let strength = self.strength.clamp(0., 1.);
@@ -852,6 +862,7 @@ impl Basin {
                     strength,
                     raw,
                     lake: false,
+                    channel_core: core,
                 });
             }
         }
@@ -870,6 +881,7 @@ impl Basin {
                 strength: 1.,
                 raw,
                 lake: true,
+                channel_core: self.config.natural && core_distance.is_finite(),
             };
             if self.config.natural {
                 // The same lake level covers a crossing channel and its banks.
@@ -1305,6 +1317,7 @@ mod tests {
             raw: 76.,
             strength: 1.,
             lake: false,
+            channel_core: true,
         };
         assert_eq!(p.voxel_floor(false), 75);
         assert_eq!(p.voxel_floor(true), 74);
@@ -1367,6 +1380,63 @@ mod tests {
         );
     }
 
+    #[test]
+    fn a_lake_channel_crosses_only_a_shallow_dry_saddle() {
+        let mut p = river_profile();
+        p.lake = true;
+        p.water = 70.;
+        p.bed = 42.; // A pre-lake channel must not determine the new cut depth.
+        assert!(p.channel_core);
+        assert_eq!(
+            p.raster_floor(72, true),
+            69,
+            "one water voxel through the saddle"
+        );
+        assert_eq!(
+            p.raster_floor(73, true),
+            69,
+            "include the three-block saddle bound"
+        );
+        assert_eq!(
+            p.raster_floor(74, true),
+            74,
+            "stop at the shallow-saddle bound"
+        );
+        assert_eq!(p.raster_floor(80, true), 80, "preserve high islands");
+        assert_eq!(
+            p.raster_floor(47, true),
+            47,
+            "preserve an already wet lake bottom"
+        );
+        let legacy_floor = p.raster_floor(72, false);
+        p.channel_core = false;
+        assert_eq!(
+            p.raster_floor(72, true),
+            72,
+            "preserve non-channel islands and shores"
+        );
+        assert_eq!(
+            p.raster_floor(72, false),
+            legacy_floor,
+            "saved legacy recipe ignores the new flag"
+        );
+        p.channel_core = true;
+        let ocean = reconcile_native_water(
+            p,
+            Some(NativeWater {
+                ground: 52,
+                water: 63,
+                ocean: true,
+            }),
+            63,
+        );
+        assert!(ocean.lake && !ocean.channel_core);
+        assert_eq!(
+            (ocean.bed, ocean.water, ocean.raster_floor(52, true)),
+            (52., 63., 52)
+        );
+    }
+
     fn lake_fixture() -> Basin {
         let c = Coast {
             key: Key(0, 0),
@@ -1391,6 +1461,7 @@ mod tests {
             water: 67.,
             strength: 1.,
             lake: false,
+            channel_core: true,
         }
     }
     #[test]
@@ -1723,10 +1794,15 @@ mod tests {
         basin.index();
         let profile = basin.sample(0, 0, 100.).unwrap();
         assert!(profile.lake && profile.strength == 1.);
+        assert!(
+            profile.channel_core,
+            "lake overlay retains the channel's core"
+        );
         assert_eq!(profile.water, 150.);
         assert_eq!(profile.bed, 100.);
-        let bank = basin.sample(3, 0, 100.).unwrap();
+        let bank = basin.sample(0, 3, 100.).unwrap();
         assert!(bank.lake);
+        assert!(!bank.channel_core, "lake shores are not channel cores");
         assert_eq!(bank.water, profile.water);
         let native = NativeWater {
             ground: 47,

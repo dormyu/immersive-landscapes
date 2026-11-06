@@ -142,7 +142,7 @@ fn main() -> Result<(), Error> {
                         let floor = p.raster_floor(base.height, true);
                         let water = p.voxel_water(true);
                         let target_water = (water > floor).then_some(water);
-                        let cut = !p.lake && floor < base.height;
+                        let cut = floor < base.height;
                         let fill = p.lake && water > base.water.map_or(base.height, |w| w.0);
                         expected = Some(Column {
                             ground: floor,

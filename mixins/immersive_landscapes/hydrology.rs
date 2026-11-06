@@ -535,8 +535,8 @@ fn raster_column(atlas: &Atlas, p: Profile, paint: Paint, x: i32, z: i32) -> Opt
     let (native, _) = atlas.native_surface.get()?.get(x, z)?;
     let floor = p.raster_floor(native.height, true);
     let water = p.voxel_water(true);
-    let cut = !p.lake && floor < native.height;
-    let bed_finish = !p.lake && water > floor;
+    let cut = floor < native.height;
+    let bed_finish = (cut || !p.lake) && water > floor;
     let top = if bed_finish {
         paint.bed(x, z, atlas.seed)
     } else {
