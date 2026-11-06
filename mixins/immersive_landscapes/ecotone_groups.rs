@@ -30,6 +30,9 @@ pub type Weights = [f64; COUNT];
 pub fn enabled(marker: Option<f64>) -> bool {
     marker == Some(1.)
 }
+pub fn recipe_width(v1: Option<f64>, v2: Option<f64>, width: Option<f64>) -> Option<i32> {
+    legacy::recipe_width(if enabled(v2) { Some(1.) } else { v1 }, width)
+}
 pub fn named(name: &str) -> Option<usize> {
     NAMES.iter().position(|n| *n == name)
 }
@@ -141,6 +144,14 @@ pub fn weights(x: i32, z: i32, step: i32, mut get: impl FnMut(i32, i32) -> Weigh
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn v2_only_recipe_enables_native_binding_without_a_legacy_marker() {
+        assert_eq!(recipe_width(None, Some(1.), Some(32.)), Some(32));
+        assert_eq!(recipe_width(Some(1.), None, Some(32.)), Some(32));
+        assert_eq!(recipe_width(None, None, Some(32.)), None);
+        assert_eq!(recipe_width(None, Some(2.), Some(32.)), None);
+        assert_eq!(recipe_width(None, Some(f64::NAN), Some(32.)), None);
+    }
     fn edge(x: i32, left: usize, right: usize) -> Weights {
         weights(x, -17, 8, |a, b| {
             anchor(a, b, 8, |xx, _| Some(if xx < 0 { left } else { right }))

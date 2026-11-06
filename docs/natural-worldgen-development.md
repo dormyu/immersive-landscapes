@@ -20,11 +20,13 @@ data. The expanded policy covers ten native temperate/cool-climate biomes. It al
 allows a direct forest/birch-to-conifer transition where dry native ground and
 local temperature permit it. Snowy, hot and wetland boundaries remain native.
 
-Current status: 52 calculation tests, all-target Clippy and combined recipe checks
+Current status: 53 calculation tests, all-target Clippy and combined recipe checks
 pass. These are source/calculation checks only. Native compilation,
 actual decorated terrain, save compatibility, two-client behavior and performance
 have not been accepted for this combined recipe. This branch is not the installed
-DormLab version. The independently verified 0.4.1/DH10 delivery has its own receipts.
+DormLab version. The separate 0.4.1 terrain fixes have native evidence, but DH10
+failed the fresh-world render-distance visual check. DH11 is under visual review;
+neither candidate has been delivered to the lab.
 
 The next checks, in order:
 
