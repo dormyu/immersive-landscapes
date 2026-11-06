@@ -27,6 +27,12 @@ fn immersive_landscapes_hydrology_build(
         .is_some_and(|v| v >= 2.0);
     let mut config = crate::worldgen::immersive_landscapes_watershed::Config {
         natural,
+        advanced_rivers: natural
+            && data
+                .densities
+                .get("immersive_landscapes:rivers_v5")
+                .and_then(|s| serde_json::from_str::<f64>(s).ok())
+                .is_some_and(|v| v == 1.),
         ..Default::default()
     };
     if natural {
@@ -88,6 +94,12 @@ fn immersive_landscapes_hydrology_build(
                     },
                 )
             },
+            generator
+                .pipeline
+                .data()
+                .registry
+                .default_state("minecraft:water")
+                .expect("native water state"),
         );
     }
     drop(scope);

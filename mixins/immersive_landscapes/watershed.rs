@@ -15,6 +15,12 @@ pub struct Land {
 
 pub trait Terrain: std::fmt::Debug + Send + Sync {
     fn land(&self, x: i32, z: i32) -> Land;
+
+    /// An existing inland water surface, resolved without this drainage overlay.
+    /// The optional default keeps synthetic DEM tools and older recipes exact.
+    fn inland_water(&self, _x: i32, _z: i32) -> Option<f64> {
+        None
+    }
 }
 
 // Only the expensive input DEM is persisted. Drainage is rebuilt from that DEM
@@ -166,6 +172,8 @@ pub struct Config {
     pub min_cells: f64,
     pub basin_cache: usize,
     pub natural: bool,
+    /// Explicit rivers_v5 recipe marker; absent in every v8/v9 saved world.
+    pub advanced_rivers: bool,
     pub meander_amplitude: f64,
     pub meander_scale: f64,
     pub width_scale: f64,
@@ -184,6 +192,7 @@ impl Default for Config {
             min_cells: 8.,
             basin_cache: 8,
             natural: true,
+            advanced_rivers: false,
             meander_amplitude: 14.,
             meander_scale: 96.,
             width_scale: 1.,
@@ -476,11 +485,40 @@ impl Basin {
         } else {
             sample()
         };
+        let inland_receiver = config
+            .advanced_rivers
+            .then(|| terrain.inland_water(coast.x, coast.z))
+            .flatten();
         for (i, land) in dem.into_iter().enumerate() {
             let p = out.point(i);
             out.raw[i] = land.height;
-            out.filled[i] = land.height.max(config.sea);
+            out.filled[i] = if config.advanced_rivers {
+                land.height
+            } else {
+                land.height.max(config.sea)
+            };
             out.ocean[i] = land.ocean && land.height <= config.sea;
+            if config.advanced_rivers {
+                if out.ocean[i] {
+                    out.filled[i] = config.sea;
+                } else if (land.height < config.sea + 1.
+                    || inland_receiver.is_some_and(|level| {
+                        land.height < level + 1.
+                            && (p[0] - f64::from(coast.x))
+                                .abs()
+                                .max((p[1] - f64::from(coast.z)).abs())
+                                <= 192.
+                    }))
+                    && let Some(water) = terrain.inland_water(p[0] as i32, p[1] as i32)
+                    && water > land.height
+                {
+                    // `ocean` is the historic receiver mask. A native lake is
+                    // now also a valid terminal, at its OWN level. Native sea
+                    // water in a river/beach biome must never become a raised lake.
+                    out.ocean[i] = true;
+                    out.filled[i] = water;
+                }
+            }
             if let Some((owner, d, other)) = nearest(p, roots) {
                 let (edge_fade, radial_fade) = config.fades();
                 let curve_margin = if config.natural { 2. } else { 0. };
@@ -614,6 +652,9 @@ impl Basin {
         }
         if config.natural {
             out.naturalize(roots);
+            if config.advanced_rivers {
+                out.branch_deltas(terrain, roots);
+            }
         }
         out.index();
         out
@@ -695,13 +736,50 @@ impl Basin {
                 let amplitude = self.config.meander_amplitude
                     * (1. - smooth(slope / 0.18))
                     * smooth(shore_distance / 48.);
-                let shift = [
+                let mut shift = [
                     amplitude * noise(self.seed, p, self.config.meander_scale),
                     amplitude * noise(self.seed ^ 0xd1b54a32d192ed03, p, self.config.meander_scale),
                 ];
+                if self.config.advanced_rivers {
+                    // Smooth the routing lattice over a whole reach before
+                    // applying the small meander field. Every tributary uses
+                    // the SAME relocated confluence vertex.
+                    let mut sum = [p[0] * 4., p[1] * 4.];
+                    let mut weight = 4.;
+                    let mut up = upstream[i];
+                    let mut down = self.parent[i];
+                    for w in [3., 2., 1.] {
+                        let (Some(a), Some(b)) = (up, down) else {
+                            break;
+                        };
+                        if self.ocean[a] || self.ocean[b] {
+                            break;
+                        }
+                        let pa = self.point(a);
+                        let pb = self.point(b);
+                        sum[0] += (pa[0] + pb[0]) * w;
+                        sum[1] += (pa[1] + pb[1]) * w;
+                        weight += 2. * w;
+                        up = upstream[a];
+                        down = self.parent[b];
+                    }
+                    let delta = [sum[0] / weight - p[0], sum[1] / weight - p[1]];
+                    let gain = (f64::from(self.config.step) * 0.75
+                        / delta[0].hypot(delta[1]).max(0.001))
+                    .min(1.)
+                        * (1. - smooth(slope / 0.25))
+                        * smooth(shore_distance / 48.);
+                    shift[0] += delta[0] * gain;
+                    shift[1] += delta[1] * gain;
+                }
                 for scale in [1., 0.5, 0.25] {
                     let candidate = [p[0] + shift[0] * scale, p[1] + shift[1] * scale];
-                    if valid(candidate) {
+                    if valid(candidate)
+                        && (!self.config.advanced_rivers
+                            || self
+                                .raw_at(candidate[0].round() as i32, candidate[1].round() as i32)
+                                <= self.raw[i] + 3.)
+                    {
                         return candidate;
                     }
                 }
@@ -775,6 +853,164 @@ impl Basin {
             }
         }
         self.segments = curved;
+    }
+
+    /// Add a distributary only where a substantial river meets a low, open
+    /// marine plain. A cliff coast or an inland lake never gets a forced fork.
+    fn branch_deltas(&mut self, terrain: &dyn Terrain, roots: &[Coast]) {
+        let mut mouths: Vec<_> = self
+            .segments
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.mouth && s.cells >= 48. && s.water[1] <= self.config.sea + 0.25)
+            .map(|(i, _)| i)
+            .collect();
+        mouths.sort_by(|&a, &b| self.segments[b].cells.total_cmp(&self.segments[a].cells));
+        let mut accepted: Vec<[f64; 2]> = Vec::new();
+        let config = self.config;
+        let coast_key = self.coast.key;
+        let (edge_fade, radial_fade) = config.fades();
+        let valid = |p: [f64; 2]| {
+            nearest(p, roots).is_some_and(|(owner, d, other)| {
+                owner.key == coast_key
+                    && d < f64::from(config.radius) - radial_fade - 2.
+                    && other - d > config.margin + edge_fade + 4.
+            })
+        };
+        for mouth in mouths.into_iter().take(8) {
+            if accepted.len() >= 2 {
+                break;
+            }
+            let end = self.segments[mouth].to;
+            if accepted
+                .iter()
+                .any(|p| (p[0] - end[0]).hypot(p[1] - end[1]) < 96.)
+            {
+                continue;
+            }
+            let mut chain = vec![mouth];
+            let mut length = 0.;
+            for _ in 0..64 {
+                let current = self.segments[*chain.last().expect("mouth")];
+                length += (current.to[0] - current.from[0]).hypot(current.to[1] - current.from[1]);
+                if length >= 72. {
+                    break;
+                }
+                let previous = self
+                    .segments
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, s)| s.to == current.from && !chain.contains(i))
+                    .max_by(|(_, a), (_, b)| a.cells.total_cmp(&b.cells))
+                    .map(|(i, _)| i);
+                let Some(previous) = previous else {
+                    break;
+                };
+                chain.push(previous);
+            }
+            let start_segment = self.segments[*chain.last().expect("mouth")];
+            if length < 48.
+                || start_segment.cells < 48.
+                || start_segment.water[0] > self.config.sea + 4.
+            {
+                continue;
+            }
+            let start = start_segment.from;
+            let direct = (end[0] - start[0]).hypot(end[1] - start[1]);
+            if direct < 32. {
+                continue;
+            }
+            let direction = [(end[0] - start[0]) / direct, (end[1] - start[1]) / direct];
+            let first_side = if hash(self.seed, Key(end[0] as i32, end[1] as i32)) & 1 == 0 {
+                1.
+            } else {
+                -1.
+            };
+            let mut chosen = None;
+            'side: for side in [first_side, -first_side] {
+                let normal = [-direction[1] * side, direction[0] * side];
+                for offset in [24., 40., 56.] {
+                    let terminal = [
+                        end[0] + normal[0] * offset + direction[0] * 16.,
+                        end[1] + normal[1] * offset + direction[1] * 16.,
+                    ];
+                    let receiving =
+                        terrain.land(terminal[0].round() as i32, terminal[1].round() as i32);
+                    if !receiving.ocean || receiving.height > self.config.sea {
+                        continue;
+                    }
+                    let controls = [
+                        start,
+                        [
+                            start[0] + direction[0] * direct * 0.33 + normal[0] * offset * 0.25,
+                            start[1] + direction[1] * direct * 0.33 + normal[1] * offset * 0.25,
+                        ],
+                        [
+                            terminal[0] - direction[0] * direct * 0.25,
+                            terminal[1] - direction[1] * direct * 0.25,
+                        ],
+                        terminal,
+                    ];
+                    let admissible = (0..=24).all(|step| {
+                        let t = f64::from(step) / 24.;
+                        let p = bezier(controls, t);
+                        let water = start_segment.water[0] * (1. - t) + self.config.sea * t;
+                        if !valid(p)
+                            || self.raw_at(p[0].round() as i32, p[1].round() as i32) > water + 2.5
+                        {
+                            return false;
+                        }
+                        if step <= 5 || step >= 22 {
+                            return true;
+                        }
+                        !self.segments.iter().enumerate().any(|(i, s)| {
+                            if chain.contains(&i) {
+                                return false;
+                            }
+                            let v = [s.to[0] - s.from[0], s.to[1] - s.from[1]];
+                            let length2 = v[0] * v[0] + v[1] * v[1];
+                            let u = (((p[0] - s.from[0]) * v[0] + (p[1] - s.from[1]) * v[1])
+                                / length2.max(0.001))
+                            .clamp(0., 1.);
+                            (p[0] - s.from[0] - v[0] * u).hypot(p[1] - s.from[1] - v[1] * u)
+                                < s.half_width + 2.
+                        })
+                    });
+                    if admissible {
+                        chosen = Some(controls);
+                        break 'side;
+                    }
+                }
+            }
+            let Some(controls) = chosen else {
+                continue;
+            };
+            let diverted = start_segment.cells * 0.35;
+            for i in chain {
+                let s = &mut self.segments[i];
+                let old = s.cells;
+                s.cells -= diverted;
+                s.half_width = (s.half_width * (s.cells / old).sqrt()).max(1.);
+                s.depth = (s.depth * (s.cells / old).powf(0.15)).max(1.2);
+            }
+            for part in 0..16 {
+                let a = f64::from(part) / 16.;
+                let b = f64::from(part + 1) / 16.;
+                self.segments.push(Segment {
+                    from: bezier(controls, a),
+                    to: bezier(controls, b),
+                    water: [
+                        start_segment.water[0] * (1. - a) + self.config.sea * a,
+                        start_segment.water[0] * (1. - b) + self.config.sea * b,
+                    ],
+                    cells: diverted,
+                    half_width: (start_segment.half_width * 0.6 * (1. + 0.15 * b)).max(1.2),
+                    depth: (start_segment.depth * 0.7).clamp(1.5, 3.),
+                    mouth: part == 15,
+                });
+            }
+            accepted.push(end);
+        }
     }
 
     fn index(&mut self) {
@@ -1051,7 +1287,104 @@ impl<T: Terrain> World<T> {
                 }
             }
         }
-        best.map(|(_, c)| c)
+        best.map(|(_, c)| c).or_else(|| {
+            self.config
+                .advanced_rivers
+                .then(|| self.find_inland_coast(key))
+                .flatten()
+        })
+    }
+
+    /// Prefer native lakes to fabricated water at a tile edge. Only a handful
+    /// of local low points need the expensive native surface resolver.
+    fn find_inland_coast(&self, key: Key) -> Option<Coast> {
+        let size = self.config.root_cell;
+        let stride = (size / 8).max(self.config.step);
+        let mut points = Vec::new();
+        for z in 0..=8 {
+            for x in 0..=8 {
+                let p = [key.0 * size + x * stride, key.1 * size + z * stride];
+                points.push((p, self.terrain.land(p[0], p[1])));
+            }
+        }
+        let mut lows: Vec<_> = points
+            .iter()
+            .enumerate()
+            .filter(|(i, (_, land))| {
+                !land.ocean && neighbors(*i, 9).all(|j| land.height <= points[j].1.height + 1.)
+            })
+            .collect();
+        lows.sort_by_key(|(_, (p, _))| hash(self.seed, Key(p[0], p[1])));
+        let mut best = None;
+        for (_, &(p, land)) in lows.into_iter().take(12) {
+            let Some(level) = self.terrain.inland_water(p[0], p[1]) else {
+                continue;
+            };
+            if !level.is_finite() || level <= land.height || level < self.config.sea {
+                continue;
+            }
+            // A water block or tiny aquifer opening is not a drainage terminal.
+            let wet_neighbors = [[16, 0], [-16, 0], [0, 16], [0, -16]]
+                .into_iter()
+                .filter(|d| {
+                    self.terrain
+                        .inland_water(p[0] + d[0], p[1] + d[1])
+                        .is_some_and(|w| (w - level).abs() < 0.25)
+                })
+                .count();
+            if wet_neighbors < 2 {
+                continue;
+            }
+            for direction in [[1, 0], [-1, 0], [0, 1], [0, -1]] {
+                let q = (1..=4)
+                    .map(|distance| {
+                        [
+                            p[0] + direction[0] * stride * distance,
+                            p[1] + direction[1] * stride * distance,
+                        ]
+                    })
+                    .find(|q| self.terrain.inland_water(q[0], q[1]).is_none());
+                let Some(q) = q else {
+                    continue;
+                };
+                let shore = self.terrain.land(q[0], q[1]);
+                if shore.height < level - 1. {
+                    continue;
+                }
+                let mut wet = p;
+                let mut dry = q;
+                for _ in 0..5 {
+                    let mid = [
+                        (wet[0] + dry[0]).div_euclid(2),
+                        (wet[1] + dry[1]).div_euclid(2),
+                    ];
+                    if self
+                        .terrain
+                        .inland_water(mid[0], mid[1])
+                        .is_some_and(|w| (w - level).abs() < 0.25)
+                    {
+                        wet = mid;
+                    } else {
+                        dry = mid;
+                    }
+                }
+                if wet[0].div_euclid(size) != key.0 || wet[1].div_euclid(size) != key.1 {
+                    continue;
+                }
+                let score = hash(self.seed, Key(wet[0], wet[1]));
+                if best.is_none_or(|(old, _)| score < old) {
+                    best = Some((
+                        score,
+                        Coast {
+                            key,
+                            x: wet[0],
+                            z: wet[1],
+                        },
+                    ));
+                }
+            }
+        }
+        best.map(|(_, coast)| coast)
     }
 
     fn roots_around(&self, x: i32, z: i32, radius: i32) -> Vec<Coast> {
@@ -1177,6 +1510,158 @@ mod tests {
             min_cells: 3.,
             ..Config::default()
         }
+    }
+
+    #[derive(Debug)]
+    struct HighlandLake;
+    impl Terrain for HighlandLake {
+        fn land(&self, x: i32, z: i32) -> Land {
+            let radius = f64::from(x - 96).hypot(f64::from(z - 96));
+            Land {
+                height: 90. + radius * 0.12,
+                ocean: false,
+            }
+        }
+        fn inland_water(&self, x: i32, z: i32) -> Option<f64> {
+            (self.land(x, z).height < 96.).then_some(96.)
+        }
+    }
+
+    #[test]
+    fn inland_catchment_ends_in_real_highland_water_not_sea_or_tile_edge() {
+        let world = World::new(
+            HighlandLake,
+            42,
+            Config {
+                advanced_rivers: true,
+                ..config()
+            },
+        );
+        let coast = world
+            .coast(Key(0, 0))
+            .expect("existing highland lake shoreline");
+        assert_eq!(HighlandLake.inland_water(coast.x, coast.z), Some(96.));
+        let basin = world.basin(coast);
+        assert!(
+            basin.segments.len() > 12,
+            "lake must receive actual tributaries"
+        );
+        assert!(
+            basin
+                .segments
+                .iter()
+                .all(|s| s.water[0] >= s.water[1] && s.water[1] >= 96.)
+        );
+        let mouths: Vec<_> = basin.segments.iter().filter(|s| s.mouth).collect();
+        assert!(!mouths.is_empty());
+        for mouth in mouths {
+            assert_eq!(mouth.water[1], 96.);
+            assert_eq!(
+                HighlandLake.inland_water(mouth.to[0] as i32, mouth.to[1] as i32),
+                Some(96.)
+            );
+        }
+        assert!((basin.input - basin.output).abs() < 1e-8);
+        assert!(
+            World::new(HighlandLake, 42, config())
+                .coast(Key(0, 0))
+                .is_none(),
+            "saved coastal recipe must remain unchanged"
+        );
+    }
+
+    #[test]
+    fn isolated_inland_water_block_is_not_a_catchment_outlet() {
+        #[derive(Debug)]
+        struct Puddle;
+        impl Terrain for Puddle {
+            fn land(&self, x: i32, z: i32) -> Land {
+                HighlandLake.land(x, z)
+            }
+            fn inland_water(&self, x: i32, z: i32) -> Option<f64> {
+                (x == 96 && z == 96).then_some(96.)
+            }
+        }
+        let world = World::new(
+            Puddle,
+            42,
+            Config {
+                advanced_rivers: true,
+                ..config()
+            },
+        );
+        assert!(world.coast(Key(0, 0)).is_none());
+    }
+
+    #[test]
+    fn low_coast_delta_splits_flow_but_does_not_cut_a_cliff() {
+        #[derive(Debug)]
+        struct LowCoast;
+        impl Terrain for LowCoast {
+            fn land(&self, x: i32, _z: i32) -> Land {
+                Land {
+                    height: 63. + f64::from(x) * 0.02,
+                    ocean: x <= 0,
+                }
+            }
+        }
+        let coast = Coast {
+            key: Key(0, 0),
+            x: 0,
+            z: 0,
+        };
+        let mut basin = Basin::compile(coast, config(), &LowCoast, &[coast]);
+        basin.segments = (0..32)
+            .map(|i| {
+                let x = 96. - f64::from(i) * 3.;
+                Segment {
+                    from: [x, 0.],
+                    to: [x - 3., 0.],
+                    water: [63. + x * 0.02, 63. + (x - 3.) * 0.02],
+                    cells: 120.,
+                    half_width: 6.,
+                    depth: 3.,
+                    mouth: i == 31,
+                }
+            })
+            .collect();
+        let original = basin.segments.clone();
+        basin.branch_deltas(&LowCoast, &[coast]);
+        assert_eq!(
+            basin.segments.iter().filter(|s| s.mouth).count(),
+            2,
+            "low receiving marine plain should permit a distributary"
+        );
+        let branch = basin.segments[original.len()];
+        let trunk = basin.segments[..original.len()]
+            .iter()
+            .find(|s| s.from == branch.from)
+            .expect("shared bifurcation");
+        assert!(
+            (trunk.cells + branch.cells - 120.).abs() < 1e-8,
+            "fork must split, not duplicate flow"
+        );
+        assert!(basin.segments.iter().all(|s| s.water[0] >= s.water[1]));
+        for mouth in basin.segments.iter().filter(|s| s.mouth) {
+            assert!(
+                LowCoast
+                    .land(mouth.to[0].round() as i32, mouth.to[1].round() as i32)
+                    .ocean
+            );
+            assert_eq!(mouth.water[1], 63.);
+        }
+        basin.segments = original.clone();
+        for i in 0..basin.raw.len() {
+            if basin.point(i)[0] > 0. {
+                basin.raw[i] += 20.;
+            }
+        }
+        basin.branch_deltas(&LowCoast, &[coast]);
+        assert_eq!(
+            basin.segments.len(),
+            original.len(),
+            "do not fabricate a delta through a cliff"
+        );
     }
 
     #[test]

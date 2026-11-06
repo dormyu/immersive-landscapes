@@ -25,6 +25,7 @@ struct NativeTerrain {
     continents: Arc<dyn DensitySampler>,
     density: Arc<dyn DensitySampler>,
     natural: bool,
+    native_surface: Arc<OnceLock<NativeSurface>>,
     failed: AtomicBool,
     samples: Mutex<TerrainSamples>,
 }
@@ -42,6 +43,7 @@ struct NativeWaterCache {
 }
 struct NativeSurface {
     sample: Box<dyn Fn(i32, i32) -> Option<(SurfaceSample, bool)> + Send + Sync>,
+    still_water: BlockStateId,
     cache: Mutex<NativeWaterCache>,
 }
 impl std::fmt::Debug for NativeSurface {
@@ -98,6 +100,13 @@ pub fn without_hydrology<T>(run: impl FnOnce() -> T) -> T {
 }
 
 impl Terrain for NativeTerrain {
+    fn inland_water(&self, x: i32, z: i32) -> Option<f64> {
+        let source = self.native_surface.get()?;
+        let (sample, ocean) = source.get(x, z)?;
+        let (level, state) = sample.water?;
+        (!ocean && state == source.still_water && level > sample.height).then_some(f64::from(level))
+    }
+
     fn land(&self, x: i32, z: i32) -> Land {
         let key = (x, z);
         if self.natural {
@@ -162,7 +171,7 @@ pub struct Atlas {
     pub seed: i64,
     pub cache: Option<PathBuf>,
     world: World<NativeTerrain>,
-    native_surface: OnceLock<NativeSurface>,
+    native_surface: Arc<OnceLock<NativeSurface>>,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -189,11 +198,17 @@ impl Atlas {
                 && let Some(source) = self.native_surface.get()
             {
                 let native = source.get(x, z).and_then(|(s, ocean)| {
-                    s.water.map(|w| NativeWater {
-                        ground: s.height,
-                        water: w.0,
-                        ocean,
-                    })
+                    s.water
+                        .filter(|(_, state)| {
+                            !self.world.config.advanced_rivers || *state == source.still_water
+                        })
+                        .map(|w| NativeWater {
+                            ground: s.height,
+                            water: w.0,
+                            ocean: ocean
+                                || (self.world.config.advanced_rivers
+                                    && w.0 <= self.world.config.sea as i32),
+                        })
                 });
                 *p = super::immersive_landscapes_watershed::reconcile_native_water(
                     *p,
@@ -282,11 +297,13 @@ pub fn building() -> bool {
 pub fn bind_pipeline(
     pipeline: usize,
     sample: impl Fn(i32, i32) -> Option<(SurfaceSample, bool)> + Send + Sync + 'static,
+    still_water: BlockStateId,
 ) {
     let atlas = BUILD.with_borrow(|stack| stack.last().and_then(|f| f.atlas.clone()));
     if let Some(atlas) = atlas {
         let _ = atlas.native_surface.set(NativeSurface {
             sample: Box::new(sample),
+            still_water,
             cache: Mutex::new(NativeWaterCache::default()),
         });
         PROFILES.with_borrow_mut(|slots| slots.fill(CachedProfile::default()));
@@ -316,12 +333,14 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
             return Some(atlas.clone());
         }
         let id = NEXT.fetch_add(1, Ordering::Relaxed);
+        let native_surface = Arc::new(OnceLock::new());
         let terrain = NativeTerrain {
             id,
             preliminary: samplers[6].clone(),
             continents: samplers[2].clone(),
             density: samplers[7].clone(),
             natural: frame.config.natural,
+            native_surface: native_surface.clone(),
             failed: AtomicBool::new(false),
             samples: Mutex::new(TerrainSamples::default()),
         };
@@ -334,7 +353,7 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
             seed: frame.seed,
             cache: frame.cache.clone(),
             world,
-            native_surface: OnceLock::new(),
+            native_surface,
         });
         frame.atlas = Some(atlas.clone());
         log::info!(
