@@ -528,6 +528,7 @@ struct RasterColumn {
     water: i32,
     top: BlockStateId,
     cut: bool,
+    bed_finish: bool,
 }
 
 fn raster_column(atlas: &Atlas, p: Profile, paint: Paint, x: i32, z: i32) -> Option<RasterColumn> {
@@ -535,7 +536,8 @@ fn raster_column(atlas: &Atlas, p: Profile, paint: Paint, x: i32, z: i32) -> Opt
     let floor = p.raster_floor(native.height, true);
     let water = p.voxel_water(true);
     let cut = !p.lake && floor < native.height;
-    let top = if cut && water > floor {
+    let bed_finish = !p.lake && water > floor;
+    let top = if bed_finish {
         paint.bed(x, z, atlas.seed)
     } else {
         native.state
@@ -545,6 +547,7 @@ fn raster_column(atlas: &Atlas, p: Profile, paint: Paint, x: i32, z: i32) -> Opt
         water,
         top,
         cut,
+        bed_finish,
     })
 }
 
@@ -577,6 +580,19 @@ fn fill_natural_proto(
                 for y in (floor - 4).max(min)..floor - 1 {
                     proto.terrain.set_block_worldgen(x, y, z, paint.stone)?;
                 }
+            }
+            // Newly wet river floors receive the same sediment in real chunks
+            // and both LOD sampling paths, even when no lowering was needed.
+            // Never cap an existing carver opening with an unsupported block.
+            let supported_floor = !matches!(
+                proto.block_name(x, floor - 1, z),
+                "minecraft:air"
+                    | "minecraft:cave_air"
+                    | "minecraft:void_air"
+                    | "minecraft:water"
+                    | "minecraft:lava"
+            );
+            if plan.cut || (plan.bed_finish && supported_floor) {
                 proto
                     .terrain
                     .set_block_worldgen(x, floor - 1, z, plan.top)?;
@@ -668,10 +684,9 @@ pub fn fill_surface(
     if atlas.world.config.natural {
         if let Some(plan) = raster_column(atlas, p, paint, x, z) {
             sample.height = plan.floor;
-            // Uncut columns keep the engine's climate-aware surface material,
-            // just like the real chunk and its solid LOD spans. The raw native
-            // sampler supplies geometry, not a replacement riparian material.
-            if plan.cut {
+            // Dry uncut columns and preserved water keep the engine palette;
+            // modified river surfaces share the exact finish with real chunks.
+            if plan.cut || plan.bed_finish {
                 sample.state = plan.top;
             }
             sample.water = (plan.water > plan.floor).then_some((plan.water, paint.water));
@@ -717,6 +732,8 @@ pub fn fill_column(
                     run.0 < run.1
                 });
                 replace_run(&mut column.1, plan.floor - 4, plan.floor - 1, paint.stone);
+            }
+            if plan.cut || plan.bed_finish {
                 replace_run(&mut column.1, plan.floor - 1, plan.floor, plan.top);
             }
             if plan.water > plan.floor {
