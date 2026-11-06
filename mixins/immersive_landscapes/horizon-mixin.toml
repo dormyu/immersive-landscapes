@@ -185,6 +185,13 @@ source = "ecotone_runtime.rs"
 visibility = "pub"
 
 [[module]]
+id = "ecotone_groups"
+file = "crates/horizon-world/src/worldgen.rs"
+name = "immersive_landscapes_ecotone_groups"
+source = "ecotone_groups.rs"
+visibility = "pub"
+
+[[module]]
 id = "ecotone_plan"
 file = "crates/horizon-world/src/worldgen/decoration.rs"
 name = "immersive_landscapes_ecotone_plan"

@@ -159,6 +159,11 @@ fn name_hash(name: &str) -> u64 {
     })
 }
 
+/// Shared coordinate hash for the separately versioned expanded policy.
+pub fn admits_chance(seed: i64, x: i32, z: i32, feature: &str, chance: f64) -> bool {
+    random(seed, x, z, name_hash(feature)) < chance
+}
+
 fn random(seed: i64, x: i32, z: i32, salt: u64) -> f64 {
     let mut h = (seed as u64)
         ^ (x as u32 as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15)

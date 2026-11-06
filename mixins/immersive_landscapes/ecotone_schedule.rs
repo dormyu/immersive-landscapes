@@ -23,6 +23,7 @@ fn immersive_landscapes_ecotone_schedule(
                 &world.decoration.names,
                 &world.decoration.features,
                 world.biome_names.len(),
+                pass.expanded,
             )
         })
         .collect();

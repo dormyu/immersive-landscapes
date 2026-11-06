@@ -1,5 +1,8 @@
 // Original native ecotone integration. MIT, dormyu.
-use super::{immersive_landscapes_ecotones as e, immersive_landscapes_hydrology::Atlas};
+use super::{
+    immersive_landscapes_ecotone_groups as g, immersive_landscapes_ecotones as e,
+    immersive_landscapes_hydrology::Atlas,
+};
 use crate::registry::{BlockRegistry, BlockStateId};
 use crate::worldgen::{
     biome::BiomeId,
@@ -14,7 +17,18 @@ use std::{
 
 // These ids exist ONLY in FeatureDecorationPlan's scheduling map. They never
 // enter BiomeChunk, a biome registry, network/save data or gameplay queries.
-pub const ALIASES: [u32; 4] = [u32::MAX - 16, u32::MAX - 15, u32::MAX - 14, u32::MAX - 13];
+pub const ALIASES: [u32; g::COUNT] = [
+    u32::MAX - 16,
+    u32::MAX - 15,
+    u32::MAX - 14,
+    u32::MAX - 13,
+    u32::MAX - 12,
+    u32::MAX - 11,
+    u32::MAX - 10,
+    u32::MAX - 9,
+    u32::MAX - 8,
+    u32::MAX - 7,
+];
 const MAX_ANCHORS: usize = 4096;
 
 /// Unknown/custom executable graphs keep their native behavior. A familiar
@@ -22,8 +36,14 @@ const MAX_ANCHORS: usize = 4096;
 pub fn safe_vegetation_definition(
     root: &crate::worldgen::feature_graph::PlacedFeatureDefinition,
 ) -> bool {
+    safe_vegetation_definition_for(root, false)
+}
+pub fn safe_vegetation_definition_for(
+    root: &crate::worldgen::feature_graph::PlacedFeatureDefinition,
+    expanded: bool,
+) -> bool {
     use crate::worldgen::{feature_graph::FeatureDefinition as F, placement::PlacementModifier};
-    fn safe(f: &F, depth: usize, remaining: &mut usize) -> bool {
+    fn safe(f: &F, depth: usize, remaining: &mut usize, expanded: bool) -> bool {
         if depth > 16 || *remaining == 0 {
             return false;
         }
@@ -33,15 +53,20 @@ pub fn safe_vegetation_definition(
             // trees. They remain vegetation; rejecting the whole selector
             // would silently disable every dense-forest donor root.
             F::Tree(_) | F::FallenTree(_) | F::SimpleBlock(_) | F::NoOp => true,
-            F::Sequence(v) | F::Overlay(v) | F::RandomChoice(v) => {
-                v.iter().all(|p| safe(&p.feature, depth + 1, remaining))
-            }
-            F::BooleanChoice(v) => v.iter().all(|p| safe(&p.feature, depth + 1, remaining)),
+            // Dark-forest trees and huge mushrooms share one verified native
+            // root. Only v2 admits that extra vegetation graph type.
+            F::HugeMushroom(_) => expanded,
+            F::Sequence(v) | F::Overlay(v) | F::RandomChoice(v) => v
+                .iter()
+                .all(|p| safe(&p.feature, depth + 1, remaining, expanded)),
+            F::BooleanChoice(v) => v
+                .iter()
+                .all(|p| safe(&p.feature, depth + 1, remaining, expanded)),
             F::ChanceChoice { features, fallback } => {
                 features
                     .iter()
-                    .all(|(_, p)| safe(&p.feature, depth + 1, remaining))
-                    && safe(&fallback.feature, depth + 1, remaining)
+                    .all(|(_, p)| safe(&p.feature, depth + 1, remaining, expanded))
+                    && safe(&fallback.feature, depth + 1, remaining, expanded)
             }
             _ => false,
         }
@@ -49,26 +74,32 @@ pub fn safe_vegetation_definition(
     root.placement
         .iter()
         .any(|p| matches!(p, PlacementModifier::Biome))
-        && safe(&root.feature, 0, &mut 256)
+        && safe(&root.feature, 0, &mut 256, expanded)
 }
 
 #[derive(Debug, Default)]
 struct Cache {
-    points: HashMap<(i32, i32), [f64; 4]>,
+    points: HashMap<(i32, i32), g::Weights>,
     order: VecDeque<(i32, i32)>,
 }
 
 #[derive(Debug)]
 pub struct Pass {
-    pub ids: [Option<BiomeId>; 4],
+    pub ids: [Option<BiomeId>; g::COUNT],
+    pub expanded: bool,
     step: i32,
     cache: Mutex<Cache>,
 }
 
 impl Pass {
-    pub fn new(data: &GeneratorData, width: i32) -> Self {
+    pub fn new(data: &GeneratorData, width: i32, expanded: bool) -> Self {
+        let mut ids = g::NAMES.map(|name| data.biome_id(name));
+        if !expanded {
+            ids[4..].fill(None);
+        }
         Self {
-            ids: e::NAMES.map(|name| data.biome_id(name)),
+            ids,
+            expanded,
             step: (width.clamp(16, 64) / 4).max(4),
             cache: Mutex::new(Cache::default()),
         }
@@ -77,9 +108,9 @@ impl Pass {
         self.ids
             .iter()
             .position(|v| *v == Some(id))
-            .map_or(e::Biome::Other, |i| e::Biome::named(e::NAMES[i]))
+            .map_or(e::Biome::Other, |i| e::Biome::named(g::NAMES[i]))
     }
-    fn anchor(&self, atlas: &Atlas, x: i32, z: i32) -> [f64; 4] {
+    fn anchor(&self, atlas: &Atlas, x: i32, z: i32) -> g::Weights {
         if let Some(v) = self
             .cache
             .lock()
@@ -92,11 +123,11 @@ impl Pass {
         }
         // Never hold the cache mutex while sampling the native pipeline. Its
         // callback bypasses hydrology and ecotones, avoiding recursive sampling.
-        let value = e::anchor(x, z, self.step, |a, b| {
+        let value = g::anchor(x, z, self.step, |a, b| {
             atlas
                 .native_land(a, b)
                 .filter(|s| s.water.is_none())
-                .map_or(e::Biome::Other, |s| self.classify(s.biome))
+                .and_then(|s| self.ids.iter().position(|id| *id == Some(s.biome)))
         });
         let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(v) = cache.points.get(&(x, z)) {
@@ -111,13 +142,15 @@ impl Pass {
         cache.order.push_back((x, z));
         value
     }
-    pub fn blend(&self, atlas: &Atlas, x: i32, z: i32, biome: BiomeId) -> Option<e::Blend> {
-        let base = self.classify(biome);
-        base.index()?;
-        e::Blend::from_weights(
-            base,
-            e::weights(x, z, self.step, |a, b| self.anchor(atlas, a, b)),
-        )
+    pub fn blend(&self, atlas: &Atlas, x: i32, z: i32, biome: BiomeId) -> Option<FeatureBlend> {
+        let index = self.ids.iter().position(|id| *id == Some(biome))?;
+        let weights = g::weights(x, z, self.step, |a, b| self.anchor(atlas, a, b));
+        if self.expanded {
+            g::Blend::from_weights(index, weights).map(FeatureBlend::Groups)
+        } else {
+            e::Blend::from_weights(self.classify(biome), weights[..4].try_into().unwrap())
+                .map(FeatureBlend::Legacy)
+        }
     }
     fn ground_band(&self, atlas: &Atlas, x: i32, z: i32) -> Option<e::Blend> {
         self.ids[2]?;
@@ -127,13 +160,15 @@ impl Pass {
         // differ from that biome at a boundary and cannot gate only near paint.
         e::Blend::from_weights(
             e::Biome::Taiga,
-            e::weights(x, z, self.step, |a, b| self.anchor(atlas, a, b)),
+            g::weights(x, z, self.step, |a, b| self.anchor(atlas, a, b))[..4]
+                .try_into()
+                .unwrap(),
         )
     }
     pub fn aliases_for_chunk(&self, atlas: &Atlas, cx: i32, cz: i32) -> Vec<BiomeId> {
         let x = cx.saturating_mul(16);
         let z = cz.saturating_mul(16);
-        let mut present = [false; 4];
+        let mut present = [false; g::COUNT];
         // Cover every lattice cell intersecting this chunk, including both
         // endpoints. At the smallest width this is only 5×5 cached anchors.
         let ax = x.div_euclid(self.step) * self.step;
@@ -143,12 +178,40 @@ impl Pass {
         for b in (az..=ez).step_by(self.step as usize) {
             for a in (ax..=ex).step_by(self.step as usize) {
                 let w = self.anchor(atlas, a, b);
-                for i in 0..4 {
+                for i in 0..g::COUNT {
                     present[i] |= w[i] > 0.;
                 }
             }
         }
         let mut out = Vec::new();
+        if self.expanded {
+            for family in g::FAMILIES {
+                if family
+                    .iter()
+                    .filter(|&&i| present[i] && self.ids[i].is_some())
+                    .count()
+                    >= 2
+                {
+                    out.extend(
+                        family
+                            .iter()
+                            .filter(|&&i| present[i] && self.ids[i].is_some())
+                            .map(|&i| BiomeId(ALIASES[i])),
+                    );
+                }
+            }
+            if g::mixed_sides_present(&present) {
+                out.extend(
+                    g::MIXED_FOREST
+                        .iter()
+                        .filter(|&&i| present[i] && self.ids[i].is_some())
+                        .map(|&i| BiomeId(ALIASES[i])),
+                );
+            }
+            out.sort_unstable_by_key(|id| id.0);
+            out.dedup();
+            return out;
+        }
         for first in [0, 2] {
             if present[first]
                 && present[first + 1]
@@ -159,6 +222,31 @@ impl Pass {
             }
         }
         out
+    }
+}
+
+pub enum FeatureBlend {
+    Legacy(e::Blend),
+    Groups(g::Blend),
+}
+impl FeatureBlend {
+    pub fn needs_dry_warm_surface(&self) -> bool {
+        matches!(self, Self::Groups(blend) if blend.cross_family)
+    }
+    pub fn admits(
+        self,
+        seed: i64,
+        x: i32,
+        z: i32,
+        feature: &str,
+        members: [bool; g::COUNT],
+    ) -> bool {
+        match self {
+            Self::Legacy(blend) => {
+                blend.admits(seed, x, z, feature, members[..4].try_into().unwrap())
+            }
+            Self::Groups(blend) => blend.admits(seed, x, z, feature, members),
+        }
     }
 }
 

@@ -107,9 +107,13 @@ fn immersive_landscapes_hydrology_build(
             && let Some(atlas) =
                 h::for_pipeline(std::sync::Arc::as_ptr(&generator.pipeline) as *const () as usize)
         {
-            let _ = atlas
-                .ecotones
-                .set(crate::worldgen::immersive_landscapes_ecotone_runtime::Pass::new(data, width));
+            let _ = atlas.ecotones.set(
+                crate::worldgen::immersive_landscapes_ecotone_runtime::Pass::new(
+                    data,
+                    width,
+                    immersive_landscapes_ecotone_settings::expanded(data),
+                ),
+            );
         }
     }
     drop(scope);

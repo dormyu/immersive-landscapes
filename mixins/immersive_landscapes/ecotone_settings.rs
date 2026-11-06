@@ -10,3 +10,11 @@ pub(crate) fn width(data: &super::GeneratorData) -> Option<i32> {
             .and_then(|s| serde_json::from_str::<f64>(s).ok()),
     )
 }
+
+pub(crate) fn expanded(data: &super::GeneratorData) -> bool {
+    crate::worldgen::immersive_landscapes_ecotone_groups::enabled(
+        data.densities
+            .get("immersive_landscapes:ecotones_v2")
+            .and_then(|s| serde_json::from_str::<f64>(s).ok()),
+    )
+}
