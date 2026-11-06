@@ -122,9 +122,8 @@ def main():
                     "bounded dry-soil ecotone top policy shared by real and distant terrain"],
         "known_limits": ["Coastal drainage coverage is bounded; not every pre-existing noise valley is converted",
                          "Native lake discovery is bounded; this is not global continental hydrology",
-                         "Combined inland/delta/ecotone implementation awaits native/runtime validation",
                          "Hot, wetland, snowy and foreign biome transitions retain native behavior",
-                         "Native near/far surface sampling differences still require checking"],
+                         "Lower-detail terrain does not preserve every native block or material boundary"],
         "registry_sha256": {name: hashlib.sha256((OUT/name).read_bytes()).hexdigest() for name in sorted(files)},
     }
     (OUT / "IL-PRESET.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8", newline="\n")

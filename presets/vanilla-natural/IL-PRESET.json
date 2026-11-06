@@ -35,9 +35,8 @@
   "known_limits": [
     "Coastal drainage coverage is bounded; not every pre-existing noise valley is converted",
     "Native lake discovery is bounded; this is not global continental hydrology",
-    "Combined inland/delta/ecotone implementation awaits native/runtime validation",
     "Hot, wetland, snowy and foreign biome transitions retain native behavior",
-    "Native near/far surface sampling differences still require checking"
+    "Lower-detail terrain does not preserve every native block or material boundary"
   ],
   "registry_sha256": {
     "data/immersive_landscapes/worldgen/density_function/ecotone_width.json": "74f7a31ab6c166f6a676abe9b030445200bbb31ae31ef468245ecd82e575c872",
