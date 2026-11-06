@@ -584,11 +584,13 @@ fn fill_natural_proto(
             // Preserved lakes/ocean keep native materials and aquifers. Only a
             // receiving inland depression may fill above its original surface.
             let start = if plan.cut { floor } else { old_top };
-            for y in start..water {
-                proto.terrain.set_block_worldgen(x, y, z, paint.water)?;
-            }
-            if water > start {
-                proto.terrain.mark_postprocessing(x, water - 1, z);
+            if water > floor {
+                for y in start..water {
+                    proto.terrain.set_block_worldgen(x, y, z, paint.water)?;
+                }
+                if water > start {
+                    proto.terrain.mark_postprocessing(x, water - 1, z);
+                }
             }
         }
     }
