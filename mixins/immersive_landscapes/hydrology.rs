@@ -1,7 +1,7 @@
 // Seed-bound native adapter. MIT, dormyu. No gameplay-frame hook.
 use super::generator::{LodColumn, ProtoChunk, SurfaceSample};
 use super::immersive_landscapes_spans::replace_run;
-use super::immersive_landscapes_watershed::{Config, Land, Profile, Terrain, World};
+use super::immersive_landscapes_watershed::{Config, Land, NativeWater, Profile, Terrain, World};
 use super::terrain::TerrainError;
 use crate::registry::{BlockRegistry, BlockStateId};
 use horizon_core::density::{DensitySampler, SampleError, SamplerContext};
@@ -35,27 +35,13 @@ struct TerrainSamples {
     order: VecDeque<(i32, i32)>,
 }
 
-impl NativeTerrain {
-    fn open_at_sea(&self, x: i32, z: i32) -> bool {
-        DEM.with_borrow_mut(|state| {
-            if state.0 != self.id {
-                *state = (self.id, SamplerContext::cached());
-            }
-            state.1.reset();
-            self.density
-                .sample_value(&mut state.1, [x, 63, z])
-                .is_ok_and(|d| d.is_finite() && d <= 0.)
-        })
-    }
-}
-
 #[derive(Default)]
 struct NativeWaterCache {
-    values: HashMap<(i32, i32), Option<SurfaceSample>>,
+    values: HashMap<(i32, i32), Option<(SurfaceSample, bool)>>,
     order: VecDeque<(i32, i32)>,
 }
 struct NativeSurface {
-    sample: Box<dyn Fn(i32, i32) -> Option<SurfaceSample> + Send + Sync>,
+    sample: Box<dyn Fn(i32, i32) -> Option<(SurfaceSample, bool)> + Send + Sync>,
     cache: Mutex<NativeWaterCache>,
 }
 impl std::fmt::Debug for NativeSurface {
@@ -64,7 +50,7 @@ impl std::fmt::Debug for NativeSurface {
     }
 }
 impl NativeSurface {
-    fn get(&self, x: i32, z: i32) -> Option<SurfaceSample> {
+    fn get(&self, x: i32, z: i32) -> Option<(SurfaceSample, bool)> {
         let key = (x, z);
         if let Some(value) = self
             .cache
@@ -200,12 +186,15 @@ impl Atlas {
             let mut profile = self.world.sample(x, z);
             if self.world.config.natural
                 && let Some(p) = &mut profile
-                && self.world.terrain.open_at_sea(x, z)
                 && let Some(source) = self.native_surface.get()
             {
-                let native = source
-                    .get(x, z)
-                    .and_then(|s| s.water.map(|w| (s.height, w.0)));
+                let native = source.get(x, z).and_then(|(s, ocean)| {
+                    s.water.map(|w| NativeWater {
+                        ground: s.height,
+                        water: w.0,
+                        ocean,
+                    })
+                });
                 *p = super::immersive_landscapes_watershed::reconcile_native_water(
                     *p,
                     native,
@@ -292,7 +281,7 @@ pub fn building() -> bool {
 
 pub fn bind_pipeline(
     pipeline: usize,
-    sample: impl Fn(i32, i32) -> Option<SurfaceSample> + Send + Sync + 'static,
+    sample: impl Fn(i32, i32) -> Option<(SurfaceSample, bool)> + Send + Sync + 'static,
 ) {
     let atlas = BUILD.with_borrow(|stack| stack.last().and_then(|f| f.atlas.clone()));
     if let Some(atlas) = atlas {
@@ -360,7 +349,10 @@ pub fn wrap_router(samplers: &mut [Arc<dyn DensitySampler>; 8]) {
     };
     let natural = atlas.world.config.natural;
     for field in [4, 5, 6, 7] {
-        if natural && field == 6 {
+        // Narrow rivers cannot be safely rasterized through the native 4x8x4
+        // density lattice: it invents cuts in adjacent columns. New recipes
+        // finish the exact banks and water before decoration in fill_proto.
+        if natural && (field == 6 || field == 7) {
             continue;
         }
         samplers[field] = Arc::new(HydroSampler {
@@ -419,7 +411,11 @@ impl DensitySampler for HydroSampler {
             // terrain nodes were compiled before this sampler was wrapped.
             5 => {
                 let base = self.base.sample_value(context, [x, y, z])?;
-                Ok(base * (1.0 - p.strength as f32))
+                Ok(if self.atlas.world.config.natural && p.lake {
+                    base
+                } else {
+                    base * (1.0 - p.strength as f32)
+                })
             }
             6 => Ok(p.bed as f32),
             7 => {
@@ -464,7 +460,13 @@ impl DensitySampler for HydroSampler {
                             self.base
                                 .sample_value(context, [x, y.saturating_add(shift), z])?
                         }
-                        5 => *value * (1. - p.strength as f32),
+                        5 => {
+                            if self.atlas.world.config.natural && p.lake {
+                                *value
+                            } else {
+                                *value * (1. - p.strength as f32)
+                            }
+                        }
                         6 => p.bed as f32,
                         7 => river_density(*value, p, y),
                         _ => unreachable!(),
@@ -520,7 +522,33 @@ impl Paint {
     }
 }
 
-pub fn fill_proto(
+#[derive(Clone, Copy)]
+struct RasterColumn {
+    floor: i32,
+    water: i32,
+    top: BlockStateId,
+    cut: bool,
+}
+
+fn raster_column(atlas: &Atlas, p: Profile, paint: Paint, x: i32, z: i32) -> Option<RasterColumn> {
+    let (native, _) = atlas.native_surface.get()?.get(x, z)?;
+    let floor = p.raster_floor(native.height, true);
+    let water = p.voxel_water(true);
+    let cut = !p.lake && floor < native.height;
+    let top = if cut && water > floor {
+        paint.bed(x, z, atlas.seed)
+    } else {
+        native.state
+    };
+    Some(RasterColumn {
+        floor,
+        water,
+        top,
+        cut,
+    })
+}
+
+fn fill_natural_proto(
     proto: &mut ProtoChunk,
     atlas: &Atlas,
     registry: &BlockRegistry,
@@ -536,7 +564,57 @@ pub fn fill_proto(
             let Some(p) = atlas.profile(wx, wz) else {
                 continue;
             };
-            let water = (p.water.ceil() as i32).clamp(min, max);
+            let Some(plan) = raster_column(atlas, p, paint, wx, wz) else {
+                continue;
+            };
+            let floor = plan.floor.clamp(min + 1, max);
+            let water = plan.water.clamp(min, max);
+            let old_top = proto.surface_height(x, z).clamp(min, max);
+            if plan.cut {
+                for y in floor.max(water)..old_top {
+                    proto.terrain.set_block_worldgen(x, y, z, paint.air)?;
+                }
+                for y in (floor - 4).max(min)..floor - 1 {
+                    proto.terrain.set_block_worldgen(x, y, z, paint.stone)?;
+                }
+                proto
+                    .terrain
+                    .set_block_worldgen(x, floor - 1, z, plan.top)?;
+            }
+            // Preserved lakes/ocean keep native materials and aquifers. Only a
+            // receiving inland depression may fill above its original surface.
+            let start = if plan.cut { floor } else { old_top };
+            for y in start..water {
+                proto.terrain.set_block_worldgen(x, y, z, paint.water)?;
+            }
+            if water > start {
+                proto.terrain.mark_postprocessing(x, water - 1, z);
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn fill_proto(
+    proto: &mut ProtoChunk,
+    atlas: &Atlas,
+    registry: &BlockRegistry,
+) -> Result<(), TerrainError> {
+    if atlas.world.config.natural {
+        return fill_natural_proto(proto, atlas, registry);
+    }
+    let paint = Paint::new(registry);
+    let pos = proto.position();
+    let min = proto.terrain.min_y();
+    let max = min + proto.terrain.height();
+    for z in 0..16 {
+        for x in 0..16 {
+            let wx = pos.x * 16 + x;
+            let wz = pos.z * 16 + z;
+            let Some(p) = atlas.profile(wx, wz) else {
+                continue;
+            };
+            let water = p.voxel_water(false).clamp(min, max);
             let strong = p.strength >= 0.7 && !p.lake;
             let floor = if strong {
                 p.voxel_floor(atlas.world.config.natural)
@@ -585,13 +663,21 @@ pub fn fill_surface(
         return;
     };
     let paint = Paint::new(registry);
+    if atlas.world.config.natural {
+        if let Some(plan) = raster_column(atlas, p, paint, x, z) {
+            sample.height = plan.floor;
+            sample.state = plan.top;
+            sample.water = (plan.water > plan.floor).then_some((plan.water, paint.water));
+        }
+        return;
+    }
     let strong = p.strength >= 0.7 && !p.lake;
     let floor = if strong {
         p.voxel_floor(atlas.world.config.natural)
     } else {
         sample.height
     };
-    let water = p.water.ceil() as i32;
+    let water = p.voxel_water(false);
     if water <= floor {
         return;
     }
@@ -616,13 +702,30 @@ pub fn fill_column(
         return;
     };
     let paint = Paint::new(registry);
+    if atlas.world.config.natural {
+        if let Some(plan) = raster_column(atlas, p, paint, x, z) {
+            if plan.cut {
+                column.1.retain_mut(|run| {
+                    run.1 = run.1.min(plan.floor);
+                    run.0 < run.1
+                });
+                replace_run(&mut column.1, plan.floor - 4, plan.floor - 1, paint.stone);
+                replace_run(&mut column.1, plan.floor - 1, plan.floor, plan.top);
+            }
+            if plan.water > plan.floor {
+                replace_run(&mut column.1, plan.floor, plan.water, paint.water);
+            }
+            fill_surface(&mut column.0, atlas, registry, x, z);
+        }
+        return;
+    }
     let strong = p.strength >= 0.7 && !p.lake;
     let floor = if strong {
         p.voxel_floor(atlas.world.config.natural)
     } else {
         sample.height
     };
-    let water = p.water.ceil() as i32;
+    let water = p.voxel_water(false);
     if water <= floor {
         return;
     }

@@ -227,33 +227,81 @@ pub struct Profile {
     pub water: f64,
     pub strength: f64,
     pub raw: f64,
+    /// Keep the existing terrain below this water body, including native sea.
     pub lake: bool,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct NativeWater {
+    pub ground: i32,
+    pub water: i32,
+    pub ocean: bool,
 }
 
 /// An unmodified native water level distinguishes a sea column from an inland
 /// lake whose BED happens to lie below sea. Density sign alone cannot do that.
-pub fn reconcile_native_water(mut p: Profile, native: Option<(i32, i32)>, sea: i32) -> Profile {
-    if let Some((ground, water)) = native
-        && ground < water
-        && water >= sea
+pub fn reconcile_native_water(mut p: Profile, native: Option<NativeWater>, sea: i32) -> Profile {
+    if let Some(native) = native
+        && native.ground < native.water
+        && native.water >= sea
     {
-        p.raw = f64::from(ground);
-        p.bed = f64::from(ground);
-        p.water = f64::from(water);
+        let inland_fill = p.lake && !native.ocean;
+        p.raw = f64::from(native.ground);
+        p.bed = f64::from(native.ground);
+        p.water = if inland_fill {
+            p.water.max(f64::from(native.water))
+        } else {
+            f64::from(native.water)
+        };
         p.strength = 1.;
-        p.lake = water > sea;
+        // Existing native water already has a real bottom/material palette.
+        // The renderer/final terrain pass must not recut it as a river liner.
+        p.lake = true;
     }
     p
 }
 
+fn voxel_ceil(height: f64, natural: bool) -> i32 {
+    // Interpolating two equal integer levels can produce 63.00000000000001.
+    // That is numerical error, not an extra metre of water. Saved v7 worlds
+    // retain their exact old ceil behavior.
+    let integer = height.round();
+    if natural && (height - integer).abs() <= 1e-7 {
+        integer as i32
+    } else {
+        height.ceil() as i32
+    }
+}
+
 impl Profile {
+    pub fn voxel_water(self, natural: bool) -> i32 {
+        voxel_ceil(self.water, natural)
+    }
+
+    pub fn raster_floor(self, native_ground: i32, natural: bool) -> i32 {
+        if !natural {
+            return self.voxel_floor(false);
+        }
+        if self.lake {
+            return native_ground;
+        }
+        let strength = self.strength.clamp(0., 1.);
+        let target = f64::from(native_ground) + (self.bed - f64::from(native_ground)) * strength;
+        let floor = voxel_ceil(target, true).min(native_ground);
+        if strength >= 0.7 && target < self.water {
+            floor.min(self.voxel_water(true) - 1)
+        } else {
+            floor
+        }
+    }
+
     pub fn voxel_floor(self, natural: bool) -> i32 {
-        let floor = self.bed.ceil() as i32;
+        let floor = voxel_ceil(self.bed, natural);
         if natural && !self.lake && self.bed < self.water {
             // A wet continuous cross-section can be less than one block deep.
             // Rasterize it consistently in chunks AND far columns, rather than
             // rounding away the final water voxel at a shallow headwater.
-            floor.min(self.water.ceil() as i32 - 1)
+            floor.min(self.voxel_water(natural) - 1)
         } else {
             floor
         }
@@ -823,7 +871,12 @@ impl Basin {
                 raw,
                 lake: true,
             };
-            if core_distance.is_finite() {
+            if self.config.natural {
+                // The same lake level covers a crossing channel and its banks.
+                // Retaining a river profile here would reset only its core to
+                // the original native water level and punch a hole in the lake.
+                result = Some(lake);
+            } else if core_distance.is_finite() {
                 if let Some(channel) = &mut result {
                     channel.water = channel.water.max(lake.water);
                 }
@@ -856,24 +909,28 @@ impl Basin {
         let i = z as usize * self.side + x as usize;
         let corners = [i, i + 1, i + self.side, i + self.side + 1];
         // A nearest dry raster cell must not flood the ocean half of its tile.
-        // Publish only a receiving depression shared by all four dry corners.
+        // All four corners must belong to this inland catchment. High dry
+        // banks need not share the water level of the depressed corners.
         if !corners
             .iter()
             .all(|&j| self.active[j] && self.drains_ocean[j] && !self.ocean[j])
-            || !corners.iter().any(|&j| self.filled[j] > self.raw[j] + 1.5)
         {
             return None;
         }
-        let lo = corners
-            .iter()
-            .map(|&j| self.filled[j])
+        let depressed = || {
+            corners
+                .iter()
+                .copied()
+                .filter(|&j| self.filled[j] > self.raw[j] + 1.5)
+        };
+        let lo = depressed()
+            .map(|j| self.filled[j])
             .fold(f64::INFINITY, f64::min);
-        let hi = corners
-            .iter()
-            .map(|&j| self.filled[j])
+        let hi = depressed()
+            .map(|j| self.filled[j])
             .fold(f64::NEG_INFINITY, f64::max);
         // Different spill levels are separate ponds, not a stair of square lakes.
-        (hi - lo < 0.25 && lo > self.config.sea).then_some(lo)
+        (lo.is_finite() && hi - lo < 0.25 && lo > self.config.sea).then_some(lo)
     }
 }
 
@@ -1251,7 +1308,63 @@ mod tests {
         };
         assert_eq!(p.voxel_floor(false), 75);
         assert_eq!(p.voxel_floor(true), 74);
-        assert!(p.voxel_floor(true) < p.water.ceil() as i32);
+        assert!(p.voxel_floor(true) < p.voxel_water(true));
+    }
+
+    #[test]
+    fn equal_water_levels_do_not_gain_a_voxel_from_roundoff() {
+        let mut p = river_profile();
+        p.water = 63.00000000000001;
+        p.bed = 62.00000000000001;
+        assert_eq!(p.voxel_water(true), 63);
+        assert_eq!(p.voxel_floor(true), 62);
+        assert_eq!(p.voxel_water(false), 64);
+        assert_eq!(p.voxel_floor(false), 63);
+        p.water = 63.001;
+        assert_eq!(p.voxel_water(true), 64, "keep a real level increase");
+        p.water = 63.00000000000001;
+        p.bed = 62.99999999999999;
+        assert_eq!(p.voxel_floor(true), 62, "keep the final wet voxel");
+    }
+
+    #[test]
+    fn final_raster_banks_fade_to_native_ground_without_raising_it() {
+        let mut p = river_profile();
+        p.bed = 60.;
+        p.water = 63.;
+        p.strength = 0.;
+        assert_eq!(p.raster_floor(68, true), 68);
+        p.strength = 0.001;
+        assert_eq!(p.raster_floor(68, true), 68);
+        p.strength = 0.5;
+        assert_eq!(p.raster_floor(68, true), 64);
+        p.strength = 1.;
+        assert_eq!(p.raster_floor(68, true), 60);
+        p.bed = 75.;
+        assert_eq!(p.raster_floor(68, true), 68, "do not raise dry land");
+        assert_eq!(p.raster_floor(68, false), 75, "saved v7 keeps its floor");
+        p.lake = true;
+        assert_eq!(
+            p.raster_floor(47, true),
+            47,
+            "preserve a native lake bottom"
+        );
+    }
+
+    #[test]
+    fn final_raster_keeps_shallow_wet_cores_and_dry_banks_distinct() {
+        let mut p = river_profile();
+        p.bed = 64.02;
+        p.water = 64.05;
+        p.strength = 1.;
+        assert_eq!(p.raster_floor(68, true), 64);
+        assert!(p.raster_floor(68, true) < p.voxel_water(true));
+        p.water = 64.0;
+        assert_eq!(
+            p.raster_floor(68, true),
+            65,
+            "do not wet a dry cross-section"
+        );
     }
 
     fn lake_fixture() -> Basin {
@@ -1282,13 +1395,60 @@ mod tests {
     }
     #[test]
     fn native_sea_preserves_actual_underwater_depth() {
-        let p = reconcile_native_water(river_profile(), Some((52, 63)), 63);
-        assert_eq!((p.bed, p.water, p.lake), (52., 63., false));
+        let p = reconcile_native_water(
+            river_profile(),
+            Some(NativeWater {
+                ground: 52,
+                water: 63,
+                ocean: true,
+            }),
+            63,
+        );
+        assert_eq!((p.bed, p.water, p.lake), (52., 63., true));
     }
     #[test]
     fn a_native_inland_lake_below_sea_is_not_lowered_into_a_pit() {
-        let p = reconcile_native_water(river_profile(), Some((56, 70)), 63);
+        let p = reconcile_native_water(
+            river_profile(),
+            Some(NativeWater {
+                ground: 56,
+                water: 70,
+                ocean: false,
+            }),
+            63,
+        );
         assert_eq!((p.bed, p.water, p.lake), (56., 70., true));
+    }
+
+    #[test]
+    fn a_planned_inland_lake_can_fill_to_its_spill_without_raising_the_sea() {
+        let mut planned = river_profile();
+        planned.lake = true;
+        let native = NativeWater {
+            ground: 47,
+            water: 63,
+            ocean: false,
+        };
+        let inland = reconcile_native_water(planned, Some(native), 63);
+        assert_eq!((inland.bed, inland.water, inland.lake), (47., 67., true));
+        let ocean = reconcile_native_water(
+            planned,
+            Some(NativeWater {
+                ocean: true,
+                ..native
+            }),
+            63,
+        );
+        assert_eq!((ocean.bed, ocean.water, ocean.lake), (47., 63., true));
+        let higher = reconcile_native_water(
+            planned,
+            Some(NativeWater {
+                water: 70,
+                ..native
+            }),
+            63,
+        );
+        assert_eq!((higher.bed, higher.water, higher.lake), (47., 70., true));
     }
     #[test]
     fn dry_native_columns_keep_the_planned_river_profile() {
@@ -1317,6 +1477,30 @@ mod tests {
         assert_eq!(b.lake_level(3.9, 3.9), Some(70.));
         b.filled[4 * b.side + 4] = 72.;
         assert_eq!(b.lake_level(3.2, 3.2), None);
+    }
+
+    #[test]
+    fn high_dry_banks_do_not_erase_the_inland_lake_shore_tile() {
+        let mut b = lake_fixture();
+        let i = 3 * b.side + 3;
+        let corners = [i, i + 1, i + b.side, i + b.side + 1];
+        // Seed42 regression: a native depression next to an above-spill bank.
+        for (j, (raw, filled)) in
+            corners
+                .into_iter()
+                .zip([(67., 67.), (25., 66.), (59., 66.), (25., 66.)])
+        {
+            b.raw[j] = raw;
+            b.filled[j] = filled;
+        }
+        assert_eq!(b.lake_level(3.2, 3.2), Some(66.));
+        b.ocean[i + 1] = true;
+        assert_eq!(b.lake_level(3.2, 3.2), None, "do not flood a sea tile");
+        b.ocean[i + 1] = false;
+        for j in corners {
+            b.filled[j] = b.raw[j];
+        }
+        assert_eq!(b.lake_level(3.2, 3.2), None, "no invented dry-land pond");
     }
 
     #[test]
@@ -1504,7 +1688,7 @@ mod tests {
                     );
                     assert!(profile.bed < profile.water);
                     assert!(
-                        profile.voxel_floor(true) < profile.water.ceil() as i32,
+                        profile.voxel_floor(true) < profile.voxel_water(true),
                         "a wet centreline disappeared when quantized into blocks"
                     );
                     count += 1;
@@ -1515,7 +1699,7 @@ mod tests {
     }
 
     #[test]
-    fn a_channel_keeps_its_cut_and_liner_through_a_filled_lake() {
+    fn a_filled_lake_covers_a_crossing_channel_without_recutting_its_bottom() {
         let c = Coast {
             key: Key(0, 0),
             x: 0,
@@ -1538,9 +1722,26 @@ mod tests {
         }];
         basin.index();
         let profile = basin.sample(0, 0, 100.).unwrap();
-        assert!(!profile.lake && profile.strength == 1.);
+        assert!(profile.lake && profile.strength == 1.);
         assert_eq!(profile.water, 150.);
-        assert!(profile.bed < 100.);
+        assert_eq!(profile.bed, 100.);
+        let bank = basin.sample(3, 0, 100.).unwrap();
+        assert!(bank.lake);
+        assert_eq!(bank.water, profile.water);
+        let native = NativeWater {
+            ground: 47,
+            water: 63,
+            ocean: false,
+        };
+        assert_eq!(
+            reconcile_native_water(profile, Some(native), 63).water,
+            150.
+        );
+        basin.config.natural = false;
+        let legacy = basin.sample(0, 0, 100.).unwrap();
+        assert!(!legacy.lake, "saved v7 retains its old channel profile");
+        assert_eq!(legacy.water, 150.);
+        assert!(legacy.bed < 100.);
     }
 
     #[test]

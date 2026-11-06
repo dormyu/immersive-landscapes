@@ -81,7 +81,12 @@ fn immersive_landscapes_hydrology_build(
             move |x, z| {
                 let pipeline = weak.upgrade()?;
                 let mut state = native.lock().unwrap_or_else(|e| e.into_inner());
-                h::without_hydrology(|| pipeline.surface_sample(&mut state, x, z, None))
+                h::without_hydrology(|| pipeline.surface_sample(&mut state, x, z, None)).map(
+                    |surface| {
+                        let ocean = pipeline.data().biome_name(surface.biome).contains("ocean");
+                        (surface, ocean)
+                    },
+                )
             },
         );
     }
