@@ -50,6 +50,11 @@ projects remain references; their Java implementation is not bundled.
 
 - [Horizon](https://github.com/horizon-rust/horizon) — Ludovic Marie and contributors;
   Rust client/server platform, MIT for its original code.
+  The `structure_build.rs` and `structure_saved.rs` integration helpers adapt
+  its f42ef42 structure-start code, retaining the full MIT notice. Version 0.5.1
+  adds local, exact ring lookup so ordinary chunk loading does not calculate
+  every distant stronghold and its hydrology. Placement and search ordering
+  are preserved; this is scheduling, not redesigned structures.
 - [horizon-mixins](https://github.com/horizon-rust/horizon-mixins) — levzzz5154 and
   contributors; native integration tooling.
   Our current build uses the original MIT code at `ddd9700` with dormyu's small

@@ -1,6 +1,6 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.5.0"
+version = "0.5.1"
 priority = 110
 
 [compatibility]
@@ -249,4 +249,48 @@ bindings = [
   { name = "world", ty = "&mut World<'_>", value = "&mut *self" },
   { name = "position", ty = "[i32; 3]", value = "position" },
   { name = "feature", ty = "FeatureIdentity", value = "feature" },
+]
+
+# Lazy exact concentric-ring searches: ordinary local generation must not
+# initialize all global stronghold biome searches (and remote IL basins).
+[[module]]
+id = "structure_rings"
+file = "crates/horizon-world/src/worldgen/generator_structures.rs"
+name = "immersive_landscapes_structure_rings"
+source = "structure_rings.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "structure_rings_help"
+kind = "HEAD"
+target = "horizon_world::worldgen::generator_structures::StructureState::rings"
+helper = "structure_rings_help.rs"
+bindings = [
+  { name = "state", ty = "&StructureState", value = "&*self" },
+  { name = "context", ty = "&mut impl super::structure::start::StartContext", value = "context" },
+]
+
+[[injection]]
+id = "structure_build"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::generator_structures::StructureState::build_starts"
+helper = "structure_build.rs"
+bindings = [
+  { name = "state", ty = "&StructureState", value = "&*self" },
+  { name = "context", ty = "&mut impl super::structure::start::StartContext", value = "context" },
+  { name = "chunk", ty = "ChunkPos", value = "chunk" },
+  { name = "wait", ty = "bool", value = "wait" },
+]
+
+[[injection]]
+id = "structure_saved"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::generator_structures::StructureState::saved_starts_at"
+helper = "structure_saved.rs"
+bindings = [
+  { name = "state", ty = "&StructureState", value = "&*self" },
+  { name = "context", ty = "&mut impl super::structure::start::StartContext", value = "context" },
+  { name = "chunk", ty = "ChunkPos", value = "chunk" },
 ]
