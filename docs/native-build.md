@@ -1,8 +1,8 @@
 # Native development build
 
-The 0.5.0 adapter targets Horizon f42ef42 / Minecraft 26.3 with separate
+The 0.5.1 adapter targets Horizon f42ef42 / Minecraft 26.3 with separate
 DH dormyu.16 and official Zoom 2.0.0. New worlds use descriptor 10 / vanilla-natural-v6.
-Final runtime `3bb2fb54bc677e1ba3fe3bfdf4f0b18b034c55fbb2285111ab8831a81da4efcd`. Read [validation](validation-0.5.0.md) for exact code pins,
+Verified runtime `808b212ac8ed618c3c49ed658e3bdf979e152a444a34e0cd8c2d7b624d9bea5a`. Read [validation](validation-0.5.1.md) for exact code pins,
 source match, successful runtime checks and measured performance limits.
 Run tools/native.py generate, stage, build or package as appropriate. On this
 Windows workspace source RustCore/development/scripts/Enter-RustDev.ps1, use

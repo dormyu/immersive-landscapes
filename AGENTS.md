@@ -1,5 +1,16 @@
 # Immersive Landscapes implementation
 
+## Streaming regression update — 0.5.1
+
+Stronghold-triggered global biome searches now resolve only relevant local rings,
+with unchanged search RNG and terrain recipes. Five native tests, the matched
+near2 reproduction, near32/DH128 travel with busy exit and full restart, and two
+Rust clients passed. Existing IL worlds can use the fix. Read
+[0.5.1 validation](docs/validation-0.5.1.md) and final release notes for the later
+installation and Prism readback. Runtime0.5.0 evidence below is historical;
+no new FPS result or owner aesthetic acceptance is inferred.
+
+
 ## Current code/runtime evidence — IL 0.5.0 / DHdormyu.16 / Zoom2
 
 Working native mod, descriptor 10 / vanilla-natural-v6. Code IL224a831,

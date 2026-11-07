@@ -1,36 +1,28 @@
-# Immersive Landscapes 0.5.0 handoff
+# Immersive Landscapes 0.5.1 handoff
 
-Working native mod for Horizon f42ef42 / Minecraft 26.3, IL224a831 / DH623dd71 /
-official Zoom725ff7a. Final runtime `3bb2fb54bc677e1ba3fe3bfdf4f0b18b034c55fbb2285111ab8831a81da4efcd`.
-New worlds: descriptor 10 / vanilla-natural-v6. Saved4–9 recipes stay unchanged;
-v4–v8 runtime fixtures pass; v9 has no separate fixture. Java support, survival,
-classes, DormCore and structure redesign are outside this generation release.
+Native streaming fix over the existing descriptor10 / vanilla-natural-v6 recipe.
+Built IL commit `a626cad3800fa1358b92c2ac880969f4987f2260`, Horizon f42ef42, DH dormyu.16 and unchanged Zoom2.
+Runtime `808b212ac8ed618c3c49ed658e3bdf979e152a444a34e0cd8c2d7b624d9bea5a`.
+Read [0.5.1 validation](validation-0.5.1.md) and the installed native-build.json /
+release notes for the later install and Prism transactions.
 
-Generation, native river/lake/ecotone gates, actual scenes, final solo/two-client/
-world-switch and near32/DH128 checks are completed. Read
-[validation](validation-0.5.0.md) for exact receipts, cache warmth and FPS limits.
-Do not repeat completed porting, rebuild a different engine, or represent a
-library/preview/prepared map as the playable mod.
+Owner reported stopped chunks and a freeze after a full Prism restart. The old
+build reproduces with near2/DHoff: a nearby stronghold triggers all128 biome
+searches and hydrology across remote regions. Exact local ring resolution fixes
+that reproduced case. Five native tests, the matched near2 regression, owner-copy
+near32/DH128 travel/busy exit/full restart, fresh same-camera vanilla/IL captures
+and two-client loopback checks pass. Do not repeat completed porting or change the
+seed/recipe as a workaround. The existing world can use this fix.
 
-Source documentation precedes package/install/Prism/publication. For those later
-actions read the v0.5.0 release notes and installed native-build.json. Local QA
-`RustCore/qa/release-0.5.0-final-2026-11-06` has guarded delivery and publication
-scripts, exact backups, source/runtime hashes and fresh launcher verification.
-Resume only a genuinely incomplete receipt; never rerun a completed transaction.
+Current bounds: explicit full structure queries can still be expensive. This is
+not universal cancellation. No new FPS claim; retain the 0.5.0 measurements with
+their exact conditions and ~98ms maximum cached movement hitch. Initial DH fill,
+material/tint boundaries, some angular channels, full biome coverage, long
+exploration, heavy-pack and owner aesthetic acceptance remain separate.
+Future structures read saved geography; structure redesign is not implemented.
 
-Known limits for subsequent work: initial DH fill can leave a temporary partial
-horizon; water/material detail may differ; some narrow channels are straight or
-angular; vegetation blending covers ten temperate/cool biomes and does not blend
-all tints. First-use fast flight did not sustain120 FPS. Owner aesthetic and
-heavy-pack acceptance remain unrecorded. These are documented next improvements,
-not reasons to relabel the working release as a prototype.
-
-Future structures must read the saved descriptor/recipe and native terrain.
-Never rewrite an old world to v10. Use a new Immersive Landscapes world to see
-the new hydrology/ecotones. Z and Z+wheel use the official separate Zoom mod.
-
-All project files/caches/temp/worlds remain on E:. Source Enter-RustDev.ps1,
-stable Rust, one Cargo job and one full-build/game owner. Keep Teams and owner
-applications open. Preserve worlds/accounts and near32/DH128 Medium/sim8/
-maxFps260/VSync off/control off. Never push DH or tooling upstream. Own author
-and GitHub identity is dormyu; source licenses and credits remain separated.
+QA: RustCore/qa/hang-recovery-2026-11-07. Preserve historical receipts.
+All files/temp/caches/worlds on E:, Enter-RustDev.ps1, stable Rust, one Cargo job.
+Only root owns build/game slot. Preserve user saves/accounts/settings; no Teams
+or other owner apps closed. Keep near32/DH128 Medium/sim8/maxFps260/VSync off and
+control off. Git identity dormyu; never push DH or tooling upstream.
