@@ -14,7 +14,9 @@ fn immersive_landscapes_ecotone_feature(
     };
     let decoration = world.decoration;
     let Some(name) = decoration.names.get(feature.0 as usize).filter(|n| {
-        if pass.expanded {
+        if pass.regional {
+            crate::worldgen::immersive_landscapes_ecotone_regions::vegetation(n)
+        } else if pass.expanded {
             crate::worldgen::immersive_landscapes_ecotone_groups::vegetation(n)
         } else {
             e::vegetation(n)
@@ -75,8 +77,13 @@ fn immersive_landscapes_ecotone_feature(
         .features
         .get(feature.0 as usize)
         .is_some_and(|f| {
-            f.as_ref()
-                .is_ok_and(|f| runtime::safe_vegetation_definition_for(f, pass.expanded))
+            f.as_ref().is_ok_and(|f| {
+                runtime::safe_vegetation_definition_with_regions(
+                    f,
+                    pass.expanded || pass.regional,
+                    pass.regional,
+                )
+            })
         })
     {
         return std::ops::ControlFlow::Continue(());

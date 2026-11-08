@@ -33,6 +33,12 @@ fn immersive_landscapes_hydrology_build(
                 .get("immersive_landscapes:rivers_v5")
                 .and_then(|s| serde_json::from_str::<f64>(s).ok())
                 .is_some_and(|v| v == 1.),
+        refined_rivers: natural
+            && data
+                .densities
+                .get("immersive_landscapes:rivers_v6")
+                .and_then(|s| serde_json::from_str::<f64>(s).ok())
+                .is_some_and(|v| v == 1.),
         ..Default::default()
     };
     if natural {
@@ -112,6 +118,7 @@ fn immersive_landscapes_hydrology_build(
                     data,
                     width,
                     immersive_landscapes_ecotone_settings::expanded(data),
+                    immersive_landscapes_ecotone_settings::regional(data),
                 ),
             );
         }

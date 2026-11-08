@@ -69,7 +69,9 @@ def recipe():
         "data/immersive_landscapes/worldgen/density_function/watershed_v1.json": 2.0,
         # Independent exact opt-ins; old saved v8/v9 recipes remain unchanged.
         "data/immersive_landscapes/worldgen/density_function/rivers_v5.json": 1.0,
+        "data/immersive_landscapes/worldgen/density_function/rivers_v6.json": 1.0,
         "data/immersive_landscapes/worldgen/density_function/ecotones_v2.json": 1.0,
+        "data/immersive_landscapes/worldgen/density_function/ecotones_v3.json": 1.0,
         "data/immersive_landscapes/worldgen/density_function/ecotone_width.json": 32.0,
         "data/immersive_landscapes/worldgen/density_function/river_meander_amplitude.json":28.0,
         "data/immersive_landscapes/worldgen/density_function/river_meander_scale.json":80.0,
@@ -100,9 +102,9 @@ def main():
         "description": "Immersive Landscapes: vanilla terrain with coherent ranges and graded valleys, by dormyu",
         "pack_format": 121, "min_format": 121, "max_format": 121}}, indent=2) + "\n", encoding="utf-8", newline="\n")
     metadata = {
-        "schema": 1, "preset": "vanilla-natural-v6", "author": "dormyu",
+        "schema": 1, "preset": "vanilla-natural-v7", "author": "dormyu",
         "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
-        "generation_family": "vanilla-natural", "descriptor_version": 10,
+        "generation_family": "vanilla-natural", "descriptor_version": 11,
         "vanilla_aliases": {"immersive_landscapes:vanilla_offset": "minecraft:overworld/offset",
                             "immersive_landscapes:vanilla_base_3d": "minecraft:overworld/base_3d_noise"},
         "preserves": ["vanilla continents and climate scale", "vanilla height limits and sea level",
@@ -118,11 +120,12 @@ def main():
                     "shared riverbed and water profiles for actual terrain and distant sampling",
                     "bounded native inland lake receivers and conserved-flow coastal distributaries",
                     "terrain-constrained smoothing of river reaches",
-                    "versioned temperate and cool-climate vegetation transitions",
+                    "transverse meanders with forward-only curve handles and bounded high-bank grading",
+                    "versioned temperate, boreal, snowy, arid, tropical and wetland vegetation transitions",
                     "bounded dry-soil ecotone top policy shared by real and distant terrain"],
         "known_limits": ["Coastal drainage coverage is bounded; not every pre-existing noise valley is converted",
                          "Native lake discovery is bounded; this is not global continental hydrology",
-                         "Hot, wetland, snowy and foreign biome transitions retain native behavior",
+                         "Pale gardens, mushroom islands, aquatic, cave and foreign biomes retain native vegetation boundaries",
                          "Lower-detail terrain does not preserve every native block or material boundary"],
         "registry_sha256": {name: hashlib.sha256((OUT/name).read_bytes()).hexdigest() for name in sorted(files)},
     }

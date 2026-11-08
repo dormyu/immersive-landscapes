@@ -1,6 +1,6 @@
 [mod]
 id = "immersive_landscapes"
-version = "0.5.1"
+version = "0.6.0"
 priority = 110
 
 [compatibility]
@@ -189,6 +189,13 @@ id = "ecotone_groups"
 file = "crates/horizon-world/src/worldgen.rs"
 name = "immersive_landscapes_ecotone_groups"
 source = "ecotone_groups.rs"
+visibility = "pub"
+
+[[module]]
+id = "ecotone_regions"
+file = "crates/horizon-world/src/worldgen.rs"
+name = "immersive_landscapes_ecotone_regions"
+source = "ecotone_regions.rs"
 visibility = "pub"
 
 [[module]]

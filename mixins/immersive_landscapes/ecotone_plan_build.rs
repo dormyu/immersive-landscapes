@@ -17,17 +17,29 @@ fn immersive_landscapes_ecotone_plan_build(
         decoration.map(|mut decoration| {
             let expanded =
                 crate::worldgen::generator::immersive_landscapes_ecotone_settings::expanded(data);
-            let mut ids = crate::worldgen::immersive_landscapes_ecotone_groups::NAMES
+            let regional =
+                crate::worldgen::generator::immersive_landscapes_ecotone_settings::regional(data);
+            let mut ids = crate::worldgen::immersive_landscapes_ecotone_regions::NAMES
                 .map(|name| data.biome_id(name));
-            if !expanded {
-                ids[4..].fill(None);
+            if !regional {
+                ids[if expanded {
+                    crate::worldgen::immersive_landscapes_ecotone_groups::COUNT
+                } else {
+                    4
+                }..]
+                    .fill(None);
             }
             let valid: Vec<_> = decoration
                 .features
                 .iter()
                 .map(|f| {
-                    f.as_ref()
-                        .is_ok_and(|f| e::safe_vegetation_definition_for(f, expanded))
+                    f.as_ref().is_ok_and(|f| {
+                        e::safe_vegetation_definition_with_regions(
+                            f,
+                            expanded || regional,
+                            regional,
+                        )
+                    })
                 })
                 .collect();
             crate::worldgen::decoration::immersive_landscapes_ecotone_plan::add_aliases(
@@ -36,6 +48,7 @@ fn immersive_landscapes_ecotone_plan_build(
                 &decoration.names,
                 &valid,
                 expanded,
+                regional,
             );
             decoration
         })

@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "preset": "vanilla-natural-v6",
+  "preset": "vanilla-natural-v7",
   "author": "dormyu",
   "based_on": "Horizon f42ef42 native vanilla generator; original density overlay by dormyu",
   "generation_family": "vanilla-natural",
-  "descriptor_version": 10,
+  "descriptor_version": 11,
   "vanilla_aliases": {
     "immersive_landscapes:vanilla_offset": "minecraft:overworld/offset",
     "immersive_landscapes:vanilla_base_3d": "minecraft:overworld/base_3d_noise"
@@ -29,18 +29,20 @@
     "shared riverbed and water profiles for actual terrain and distant sampling",
     "bounded native inland lake receivers and conserved-flow coastal distributaries",
     "terrain-constrained smoothing of river reaches",
-    "versioned temperate and cool-climate vegetation transitions",
+    "transverse meanders with forward-only curve handles and bounded high-bank grading",
+    "versioned temperate, boreal, snowy, arid, tropical and wetland vegetation transitions",
     "bounded dry-soil ecotone top policy shared by real and distant terrain"
   ],
   "known_limits": [
     "Coastal drainage coverage is bounded; not every pre-existing noise valley is converted",
     "Native lake discovery is bounded; this is not global continental hydrology",
-    "Hot, wetland, snowy and foreign biome transitions retain native behavior",
+    "Pale gardens, mushroom islands, aquatic, cave and foreign biomes retain native vegetation boundaries",
     "Lower-detail terrain does not preserve every native block or material boundary"
   ],
   "registry_sha256": {
     "data/immersive_landscapes/worldgen/density_function/ecotone_width.json": "74f7a31ab6c166f6a676abe9b030445200bbb31ae31ef468245ecd82e575c872",
     "data/immersive_landscapes/worldgen/density_function/ecotones_v2.json": "5717e7c840171019a4eeab5b79a7f894a4986eaff93d04ec5b12c9a189f594bf",
+    "data/immersive_landscapes/worldgen/density_function/ecotones_v3.json": "5717e7c840171019a4eeab5b79a7f894a4986eaff93d04ec5b12c9a189f594bf",
     "data/immersive_landscapes/worldgen/density_function/range_field.json": "c8c1bacc310e6789bffd97ce67982fc8805ea47e08347630ed825ae74d4d94a3",
     "data/immersive_landscapes/worldgen/density_function/river_bank_scale.json": "66e4c000f2000eb1cca164f97c441e14d438ca2599c8e79f4de6ecade0de8b32",
     "data/immersive_landscapes/worldgen/density_function/river_depth_scale.json": "5717e7c840171019a4eeab5b79a7f894a4986eaff93d04ec5b12c9a189f594bf",
@@ -48,6 +50,7 @@
     "data/immersive_landscapes/worldgen/density_function/river_meander_scale.json": "0bd3a700c56e20e9464d77f118f4c69e96706d36803fdaabb12dd8ddd08c4131",
     "data/immersive_landscapes/worldgen/density_function/river_width_scale.json": "5717e7c840171019a4eeab5b79a7f894a4986eaff93d04ec5b12c9a189f594bf",
     "data/immersive_landscapes/worldgen/density_function/rivers_v5.json": "5717e7c840171019a4eeab5b79a7f894a4986eaff93d04ec5b12c9a189f594bf",
+    "data/immersive_landscapes/worldgen/density_function/rivers_v6.json": "5717e7c840171019a4eeab5b79a7f894a4986eaff93d04ec5b12c9a189f594bf",
     "data/immersive_landscapes/worldgen/density_function/valley_profile.json": "77c467e9bb4ada8e914fee727f8fb6012d3d3a31cbd2e1deb608eff1099efab7",
     "data/immersive_landscapes/worldgen/density_function/valley_strength.json": "6519ec19b14b5ff5377c587f1c410cc8ffdfcfa84b67128e9d88ef953a218497",
     "data/immersive_landscapes/worldgen/density_function/watershed_v1.json": "d526eb4e878a23ef26ae190031b4efd2d58ed66789ac049ea3dbaf74c9df7402",

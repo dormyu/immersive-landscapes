@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
 
-pub(super) const VERSION: &str = "0.5.1";
+pub(super) const VERSION: &str = "0.6.0";
 pub(super) const ID: &str = "immersive_landscapes";
 const MARKER: &str = "immersive-landscapes.json";
 const PACK: &str = "immersive-landscapes";
@@ -51,7 +51,7 @@ fn preset_identity(external: Option<&Path>) -> Result<PresetIdentity> {
     };
     let identity: PresetIdentity = serde_json::from_str(&text)?;
     if identity.schema != 1
-        || !matches!(identity.descriptor_version, 5 | 6 | 7 | 8 | 9 | 10)
+        || !matches!(identity.descriptor_version, 5 | 6 | 7 | 8 | 9 | 10 | 11)
         || identity.preset.is_empty()
         || identity.author.is_empty()
     {
@@ -132,7 +132,7 @@ pub(super) fn prepare(request: &WorldRequest, settings: &Settings, resources: &P
     let root = &request.save_root;
     if root.join(MARKER).is_file() {
         let saved: Descriptor = serde_json::from_slice(&std::fs::read(root.join(MARKER))?)?;
-        if !matches!(saved.version, 4 | 5 | 6 | 7 | 8 | 9 | 10) {
+        if !matches!(saved.version, 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11) {
             return Err("This is an archived Immersive Landscapes prototype world. Open it with its pinned experimental build; create a new world for the current preset.".into());
         }
         if !root

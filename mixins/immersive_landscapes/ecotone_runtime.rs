@@ -1,7 +1,7 @@
 // Original native ecotone integration. MIT, dormyu.
 use super::{
-    immersive_landscapes_ecotone_groups as g, immersive_landscapes_ecotones as e,
-    immersive_landscapes_hydrology::Atlas,
+    immersive_landscapes_ecotone_groups as g, immersive_landscapes_ecotone_regions as r,
+    immersive_landscapes_ecotones as e, immersive_landscapes_hydrology::Atlas,
 };
 use crate::registry::{BlockRegistry, BlockStateId};
 use crate::worldgen::{
@@ -17,7 +17,7 @@ use std::{
 
 // These ids exist ONLY in FeatureDecorationPlan's scheduling map. They never
 // enter BiomeChunk, a biome registry, network/save data or gameplay queries.
-pub const ALIASES: [u32; g::COUNT] = [
+const LEGACY_ALIASES: [u32; g::COUNT] = [
     u32::MAX - 16,
     u32::MAX - 15,
     u32::MAX - 14,
@@ -29,6 +29,19 @@ pub const ALIASES: [u32; g::COUNT] = [
     u32::MAX - 8,
     u32::MAX - 7,
 ];
+pub const ALIASES: [u32; r::COUNT] = {
+    let mut ids = [0; r::COUNT];
+    let mut i = 0;
+    while i < r::COUNT {
+        ids[i] = if i < g::COUNT {
+            LEGACY_ALIASES[i]
+        } else {
+            u32::MAX - 17 - (i - g::COUNT) as u32
+        };
+        i += 1;
+    }
+    ids
+};
 const MAX_ANCHORS: usize = 4096;
 
 /// Unknown/custom executable graphs keep their native behavior. A familiar
@@ -42,8 +55,15 @@ pub fn safe_vegetation_definition_for(
     root: &crate::worldgen::feature_graph::PlacedFeatureDefinition,
     expanded: bool,
 ) -> bool {
+    safe_vegetation_definition_with_regions(root, expanded, false)
+}
+pub fn safe_vegetation_definition_with_regions(
+    root: &crate::worldgen::feature_graph::PlacedFeatureDefinition,
+    expanded: bool,
+    regional: bool,
+) -> bool {
     use crate::worldgen::{feature_graph::FeatureDefinition as F, placement::PlacementModifier};
-    fn safe(f: &F, depth: usize, remaining: &mut usize, expanded: bool) -> bool {
+    fn safe(f: &F, depth: usize, remaining: &mut usize, expanded: bool, regional: bool) -> bool {
         if depth > 16 || *remaining == 0 {
             return false;
         }
@@ -56,17 +76,26 @@ pub fn safe_vegetation_definition_for(
             // Dark-forest trees and huge mushrooms share one verified native
             // root. Only v2 admits that extra vegetation graph type.
             F::HugeMushroom(_) => expanded,
+            F::Bamboo(_) | F::Vines(_) | F::BlockColumn(_) => regional,
+            // 26.3 dappled trees use the weighted selector. Validate every
+            // child, including zero-weight entries, instead of trusting its name.
+            F::WeightedChoice(v) => {
+                regional
+                    && v.entries()
+                        .iter()
+                        .all(|(p, _)| safe(&p.feature, depth + 1, remaining, expanded, regional))
+            }
             F::Sequence(v) | F::Overlay(v) | F::RandomChoice(v) => v
                 .iter()
-                .all(|p| safe(&p.feature, depth + 1, remaining, expanded)),
+                .all(|p| safe(&p.feature, depth + 1, remaining, expanded, regional)),
             F::BooleanChoice(v) => v
                 .iter()
-                .all(|p| safe(&p.feature, depth + 1, remaining, expanded)),
+                .all(|p| safe(&p.feature, depth + 1, remaining, expanded, regional)),
             F::ChanceChoice { features, fallback } => {
                 features
                     .iter()
-                    .all(|(_, p)| safe(&p.feature, depth + 1, remaining, expanded))
-                    && safe(&fallback.feature, depth + 1, remaining, expanded)
+                    .all(|(_, p)| safe(&p.feature, depth + 1, remaining, expanded, regional))
+                    && safe(&fallback.feature, depth + 1, remaining, expanded, regional)
             }
             _ => false,
         }
@@ -74,32 +103,34 @@ pub fn safe_vegetation_definition_for(
     root.placement
         .iter()
         .any(|p| matches!(p, PlacementModifier::Biome))
-        && safe(&root.feature, 0, &mut 256, expanded)
+        && safe(&root.feature, 0, &mut 256, expanded, regional)
 }
 
 #[derive(Debug, Default)]
 struct Cache {
-    points: HashMap<(i32, i32), g::Weights>,
+    points: HashMap<(i32, i32), r::Weights>,
     order: VecDeque<(i32, i32)>,
 }
 
 #[derive(Debug)]
 pub struct Pass {
-    pub ids: [Option<BiomeId>; g::COUNT],
+    pub ids: [Option<BiomeId>; r::COUNT],
     pub expanded: bool,
+    pub regional: bool,
     step: i32,
     cache: Mutex<Cache>,
 }
 
 impl Pass {
-    pub fn new(data: &GeneratorData, width: i32, expanded: bool) -> Self {
-        let mut ids = g::NAMES.map(|name| data.biome_id(name));
-        if !expanded {
-            ids[4..].fill(None);
+    pub fn new(data: &GeneratorData, width: i32, expanded: bool, regional: bool) -> Self {
+        let mut ids = r::NAMES.map(|name| data.biome_id(name));
+        if !regional {
+            ids[if expanded { g::COUNT } else { 4 }..].fill(None);
         }
         Self {
             ids,
             expanded,
+            regional,
             step: (width.clamp(16, 64) / 4).max(4),
             cache: Mutex::new(Cache::default()),
         }
@@ -108,9 +139,9 @@ impl Pass {
         self.ids
             .iter()
             .position(|v| *v == Some(id))
-            .map_or(e::Biome::Other, |i| e::Biome::named(g::NAMES[i]))
+            .map_or(e::Biome::Other, |i| e::Biome::named(r::NAMES[i]))
     }
-    fn anchor(&self, atlas: &Atlas, x: i32, z: i32) -> g::Weights {
+    fn anchor(&self, atlas: &Atlas, x: i32, z: i32) -> r::Weights {
         if let Some(v) = self
             .cache
             .lock()
@@ -123,10 +154,13 @@ impl Pass {
         }
         // Never hold the cache mutex while sampling the native pipeline. Its
         // callback bypasses hydrology and ecotones, avoiding recursive sampling.
-        let value = g::anchor(x, z, self.step, |a, b| {
+        let value = r::anchor(x, z, self.step, |a, b| {
             atlas
                 .native_land(a, b)
-                .filter(|s| s.water.is_none())
+                .filter(|s| {
+                    s.water.is_none()
+                        || self.regional && [33, 34].iter().any(|&i| self.ids[i] == Some(s.biome))
+                })
                 .and_then(|s| self.ids.iter().position(|id| *id == Some(s.biome)))
         });
         let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
@@ -144,9 +178,12 @@ impl Pass {
     }
     pub fn blend(&self, atlas: &Atlas, x: i32, z: i32, biome: BiomeId) -> Option<FeatureBlend> {
         let index = self.ids.iter().position(|id| *id == Some(biome))?;
-        let weights = g::weights(x, z, self.step, |a, b| self.anchor(atlas, a, b));
-        if self.expanded {
-            g::Blend::from_weights(index, weights).map(FeatureBlend::Groups)
+        let weights = r::weights(x, z, self.step, |a, b| self.anchor(atlas, a, b));
+        if self.regional {
+            r::Blend::from_weights(index, weights).map(FeatureBlend::Regions)
+        } else if self.expanded {
+            g::Blend::from_weights(index, weights[..g::COUNT].try_into().unwrap())
+                .map(FeatureBlend::Groups)
         } else {
             e::Blend::from_weights(self.classify(biome), weights[..4].try_into().unwrap())
                 .map(FeatureBlend::Legacy)
@@ -160,7 +197,7 @@ impl Pass {
         // differ from that biome at a boundary and cannot gate only near paint.
         e::Blend::from_weights(
             e::Biome::Taiga,
-            g::weights(x, z, self.step, |a, b| self.anchor(atlas, a, b))[..4]
+            r::weights(x, z, self.step, |a, b| self.anchor(atlas, a, b))[..4]
                 .try_into()
                 .unwrap(),
         )
@@ -168,7 +205,7 @@ impl Pass {
     pub fn aliases_for_chunk(&self, atlas: &Atlas, cx: i32, cz: i32) -> Vec<BiomeId> {
         let x = cx.saturating_mul(16);
         let z = cz.saturating_mul(16);
-        let mut present = [false; g::COUNT];
+        let mut present = [false; r::COUNT];
         // Cover every lattice cell intersecting this chunk, including both
         // endpoints. At the smallest width this is only 5×5 cached anchors.
         let ax = x.div_euclid(self.step) * self.step;
@@ -178,12 +215,32 @@ impl Pass {
         for b in (az..=ez).step_by(self.step as usize) {
             for a in (ax..=ex).step_by(self.step as usize) {
                 let w = self.anchor(atlas, a, b);
-                for i in 0..g::COUNT {
+                for i in 0..r::COUNT {
                     present[i] |= w[i] > 0.;
                 }
             }
         }
         let mut out = Vec::new();
+        if self.regional {
+            for family in r::FAMILIES {
+                if family
+                    .iter()
+                    .filter(|&&i| present[i] && self.ids[i].is_some())
+                    .count()
+                    >= 2
+                {
+                    out.extend(
+                        family
+                            .iter()
+                            .filter(|&&i| present[i] && self.ids[i].is_some())
+                            .map(|&i| BiomeId(ALIASES[i])),
+                    );
+                }
+            }
+            out.sort_unstable_by_key(|id| id.0);
+            out.dedup();
+            return out;
+        }
         if self.expanded {
             for family in g::FAMILIES {
                 if family
@@ -200,7 +257,7 @@ impl Pass {
                     );
                 }
             }
-            if g::mixed_sides_present(&present) {
+            if g::mixed_sides_present(present[..g::COUNT].try_into().unwrap()) {
                 out.extend(
                     g::MIXED_FOREST
                         .iter()
@@ -228,10 +285,15 @@ impl Pass {
 pub enum FeatureBlend {
     Legacy(e::Blend),
     Groups(g::Blend),
+    Regions(r::Blend),
 }
 impl FeatureBlend {
     pub fn needs_dry_warm_surface(&self) -> bool {
-        matches!(self, Self::Groups(blend) if blend.cross_family)
+        match self {
+            Self::Groups(blend) => blend.cross_family,
+            Self::Regions(blend) => blend.needs_dry_warm_surface(),
+            Self::Legacy(_) => false,
+        }
     }
     pub fn admits(
         self,
@@ -239,13 +301,16 @@ impl FeatureBlend {
         x: i32,
         z: i32,
         feature: &str,
-        members: [bool; g::COUNT],
+        members: [bool; r::COUNT],
     ) -> bool {
         match self {
             Self::Legacy(blend) => {
                 blend.admits(seed, x, z, feature, members[..4].try_into().unwrap())
             }
-            Self::Groups(blend) => blend.admits(seed, x, z, feature, members),
+            Self::Groups(blend) => {
+                blend.admits(seed, x, z, feature, members[..g::COUNT].try_into().unwrap())
+            }
+            Self::Regions(blend) => blend.admits(seed, x, z, feature, members),
         }
     }
 }
@@ -419,6 +484,51 @@ pub fn fill_proto(
 #[cfg(test)]
 mod scope_tests {
     use super::*;
+    #[test]
+    fn regional_weighted_donors_are_recursive_bounded_and_leave_v2_unchanged() {
+        use crate::worldgen::{
+            feature_graph::{FeatureDefinition as F, PlacedFeatureDefinition as P},
+            placement::PlacementModifier as M,
+            weighted::OptionalWeightedList,
+        };
+        let leaf = || P {
+            feature: Box::new(F::NoOp),
+            placement: vec![],
+        };
+        let root = |n| P {
+            feature: Box::new(F::WeightedChoice(
+                OptionalWeightedList::new((0..n).map(|_| (leaf(), 1)).collect()).unwrap(),
+            )),
+            placement: vec![M::Biome],
+        };
+        assert!(safe_vegetation_definition_with_regions(
+            &root(3),
+            true,
+            true
+        ));
+        assert!(!safe_vegetation_definition_with_regions(
+            &root(3),
+            true,
+            false
+        ));
+        assert!(!safe_vegetation_definition_with_regions(
+            &root(256),
+            true,
+            true
+        ));
+        let mut nested = leaf();
+        for _ in 0..18 {
+            nested = P {
+                feature: Box::new(F::WeightedChoice(
+                    OptionalWeightedList::new(vec![(nested, 1)]).unwrap(),
+                )),
+                placement: vec![M::Biome],
+            };
+        }
+        assert!(!safe_vegetation_definition_with_regions(
+            &nested, true, true
+        ));
+    }
     #[test]
     fn decoration_scopes_restore_on_nested_worlds_panics_and_threads() {
         assert!(!has_scope());

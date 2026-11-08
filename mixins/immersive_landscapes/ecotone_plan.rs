@@ -2,20 +2,23 @@
 // private. No feature order is rebuilt and no biome registry is modified.
 use super::*;
 
-fn vegetation_name(name: &str, expanded: bool) -> bool {
-    if expanded {
+fn vegetation_name(name: &str, expanded: bool, regional: bool) -> bool {
+    if regional {
+        crate::worldgen::immersive_landscapes_ecotone_regions::vegetation(name)
+    } else if expanded {
         crate::worldgen::immersive_landscapes_ecotone_groups::vegetation(name)
     } else {
         crate::worldgen::immersive_landscapes_ecotones::vegetation(name)
     }
 }
 
-pub(crate) fn add_aliases(
+pub(crate) fn add_aliases<const N: usize>(
     plan: &mut FeatureDecorationPlan,
-    ids: [Option<DecorationBiome>; crate::worldgen::immersive_landscapes_ecotone_groups::COUNT],
+    ids: [Option<DecorationBiome>; N],
     names: &[String],
     valid: &[bool],
     expanded: bool,
+    regional: bool,
 ) {
     use crate::worldgen::immersive_landscapes_ecotone_runtime::ALIASES;
     for (index, source) in ids.into_iter().enumerate() {
@@ -40,7 +43,7 @@ pub(crate) fn add_aliases(
                     .filter(|f| {
                         names
                             .get(f.0 as usize)
-                            .is_some_and(|n| vegetation_name(n, expanded))
+                            .is_some_and(|n| vegetation_name(n, expanded, regional))
                             && valid.get(f.0 as usize) == Some(&true)
                     })
                     .collect()
@@ -74,6 +77,7 @@ pub(crate) fn safe_alias(
     features: &[Result<crate::worldgen::feature_graph::PlacedFeatureDefinition, String>],
     biome_count: usize,
     expanded: bool,
+    regional: bool,
 ) -> bool {
     use crate::worldgen::immersive_landscapes_ecotone_runtime::ALIASES;
     if !ALIASES.contains(&alias.0) || (alias.0 as usize) < biome_count {
@@ -86,10 +90,10 @@ pub(crate) fn safe_alias(
                     && roots.iter().all(|f| {
                         names
                             .get(f.0 as usize)
-                            .is_some_and(|n| vegetation_name(n, expanded))
+                            .is_some_and(|n| vegetation_name(n, expanded, regional))
                             && features.get(f.0 as usize).is_some_and(|f| {
                                 f.as_ref().is_ok_and(|f| {
-                                    crate::worldgen::immersive_landscapes_ecotone_runtime::safe_vegetation_definition_for(f, expanded)
+                                    crate::worldgen::immersive_landscapes_ecotone_runtime::safe_vegetation_definition_with_regions(f, expanded || regional, regional)
                                 })
                             })
                     })
@@ -116,7 +120,7 @@ mod tests {
         .map(str::to_owned);
         let mut ids = [None; crate::worldgen::immersive_landscapes_ecotone_groups::COUNT];
         ids[2] = Some(DecorationBiome(5));
-        add_aliases(&mut plan, ids, &names, &[true; 3], false);
+        add_aliases(&mut plan, ids, &names, &[true; 3], false, false);
         assert_eq!(format!("{:?}", plan.steps), before_steps);
         assert_eq!(
             (0..3)
@@ -129,7 +133,7 @@ mod tests {
         assert!(plan.biomes[&alias][6].is_empty());
         assert_eq!(plan.biomes[&alias][9], vec![FeatureIdentity(1)]);
         let snapshot = format!("{:?}", plan);
-        add_aliases(&mut plan, ids, &names, &[false; 3], false);
+        add_aliases(&mut plan, ids, &names, &[false; 3], false, false);
         assert_eq!(
             format!("{:?}", plan),
             snapshot,
@@ -156,7 +160,14 @@ mod tests {
         ids[6] = Some(DecorationBiome(7));
         // Missing biome ids and rejected/custom executable graphs do not leak
         // into a donor alias, even when their registry name looks familiar.
-        add_aliases(&mut plan, ids, &names, &[true, true, false, true], true);
+        add_aliases(
+            &mut plan,
+            ids,
+            &names,
+            &[true, true, false, true],
+            true,
+            false,
+        );
         let alias =
             DecorationBiome(crate::worldgen::immersive_landscapes_ecotone_runtime::ALIASES[6]);
         assert_eq!(plan.biomes[&alias][9], vec![FeatureIdentity(1)]);
