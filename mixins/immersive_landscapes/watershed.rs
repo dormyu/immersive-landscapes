@@ -359,6 +359,18 @@ impl Profile {
         self.raster_floor_versioned(native_ground, natural, false)
     }
 
+    pub fn refined_dry_bank_floor(self, floor: i32, native_ground: i32, refined: bool) -> i32 {
+        if refined && !self.channel_core && !self.lake {
+            // A coarse DEM can see a low cavity beside a real shore. Its dry
+            // bank envelope must not excavate that shore below river level,
+            // exposing the side of a native aquifer as a tall water wall.
+            // Preserve genuinely lower native ground instead of raising it.
+            floor.max(self.voxel_water(true).min(native_ground))
+        } else {
+            floor
+        }
+    }
+
     pub fn raster_floor_versioned(
         self,
         native_ground: i32,
@@ -2446,6 +2458,51 @@ mod tests {
             p.raster_floor(68, true),
             65,
             "do not wet a dry cross-section"
+        );
+    }
+
+    #[test]
+    fn dry_bank_cannot_expose_a_native_aquifer_below_river_level() {
+        // Native seed4312740467388825473, (-1684,-2646): actual shore65,
+        // adjacent native water32..63; the coarse DEM reports40.65625.
+        // Before this rule the dry envelope excavated23 blocks to floor42.
+        let mut p = Profile {
+            raw: 40.65625,
+            bed: 40.65625,
+            water: 63.,
+            strength: 0.95315,
+            channel_core: false,
+            lake: false,
+        };
+        let old = p.raster_floor_versioned(65, true, true);
+        assert_eq!(old, 42, "keep the exact inherited failure reproducible");
+        assert_eq!(p.refined_dry_bank_floor(old, 65, true), 63);
+        assert_eq!(
+            p.refined_dry_bank_floor(old, 65, false),
+            old,
+            "saved v10 stays exact"
+        );
+        for ground in 32..80 {
+            let floor = p.raster_floor_versioned(ground, true, true);
+            let protected = p.refined_dry_bank_floor(floor, ground, true);
+            assert!(protected <= ground, "do not raise native cave floors");
+            assert!(
+                protected >= 63.min(ground),
+                "dry bank excavated below its waterline"
+            );
+        }
+        p.channel_core = true;
+        assert_eq!(
+            p.refined_dry_bank_floor(old, 65, true),
+            old,
+            "river beds retain their depth"
+        );
+        p.channel_core = false;
+        p.lake = true;
+        assert_eq!(
+            p.refined_dry_bank_floor(32, 32, true),
+            32,
+            "preserve actual wet lake floors"
         );
     }
 

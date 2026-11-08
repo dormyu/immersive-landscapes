@@ -185,10 +185,15 @@ struct CachedProfile {
 
 impl Atlas {
     pub fn raster_floor(&self, profile: Profile, native_ground: i32) -> i32 {
-        profile.raster_floor_versioned(
+        let floor = profile.raster_floor_versioned(
             native_ground,
             self.world.config.natural,
             self.world.config.advanced_rivers,
+        );
+        profile.refined_dry_bank_floor(
+            floor,
+            native_ground,
+            self.world.config.natural && self.world.config.refined_rivers,
         )
     }
 

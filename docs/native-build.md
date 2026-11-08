@@ -1,8 +1,8 @@
 # Native development build
 
-The 0.5.1 adapter targets Horizon f42ef42 / Minecraft 26.3 with separate
-DH dormyu.16 and official Zoom 2.0.0. New worlds use descriptor 10 / vanilla-natural-v6.
-Verified runtime `808b212ac8ed618c3c49ed658e3bdf979e152a444a34e0cd8c2d7b624d9bea5a`. Read [validation](validation-0.5.1.md) for exact code pins,
+The 0.6.0 adapter targets Horizon f42ef42 / Minecraft 26.3 with separate
+DH dormyu.16 and official Zoom 2.0.0. New worlds use descriptor 11 / vanilla-natural-v7.
+Read [validation](validation-0.6.0.md) for exact code pins,
 source match, successful runtime checks and measured performance limits.
 Run tools/native.py generate, stage, build or package as appropriate. On this
 Windows workspace source RustCore/development/scripts/Enter-RustDev.ps1, use
@@ -56,12 +56,15 @@ The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
 documented patched tool / combined build or the tested prebuilt DormLab executable.
 Game resources, accounts and worlds are never part of this source package.
 
-## Native generation 0.5.0
+## Native generation 0.6.0
 
-Current bounded coastal/inland hydrology, conservative delta branches and
-ten-biome ecotones use descriptor 10 and exact rivers_v5/ecotones_v2 markers.
-Read [implementation](hydrology-development.md) and [validation](validation-0.5.0.md).
-Saved4–9 recipes remain unchanged; new features need a new IL world. DH16
+Bounded coastal/inland hydrology and conservative delta branches now use the
+opt-in `rivers_v6=1` policy for transverse bends, dry banks and bounded waterfall
+joins. Regional vegetation ecotones use `ecotones_v3=1`, with six compatible
+climate neighborhoods. Descriptor 11 adds these two exact markers without
+changing the previous sixteen density inputs. Read the
+[generation design](vanilla-natural.md) and [validation](validation-0.6.0.md).
+Saved descriptors 4–10 retain their exact recipes; new features need a new IL world. DH16
 regenerates derived LOD cache only. Historical notes below do not override the
 current manifest or claim migration of existing worlds.
 
@@ -103,8 +106,8 @@ that arbitrary Java data packs are compatible.
 The enabled mod owns the normal-world generation slot, whose creation-screen
 name is now **Immersive Landscapes**. This is the working generation recipe under an
 accurate display name. The persisted Horizon identity remains `minecraft:normal`,
-with descriptor 10 / vanilla-natural-v6 and the world-local data pack for new worlds. Old v4-v9 worlds keep
-their Epic/v1 recipe; this update does not migrate them. Flat, large-biome and other
+with descriptor 11 / vanilla-natural-v7 and the world-local data pack for new worlds. Old v4–v10 worlds keep
+their own Epic/natural recipes; this update does not migrate them. Flat, large-biome and other
 slots keep their own behavior.
 
 `world_type_ui.rs` keeps a presentation flag, synchronized at native-mod discovery
@@ -130,11 +133,16 @@ engine libraries retain their existing optimized profile. After staging, these
 are ordinary Cargo overrides; use one job and an E: target/temp directory:
 
 ```powershell
-cargo --config profile.fast.package.horizon-client.incremental=false --config profile.fast.package.horizon-client.opt-level=2 --config profile.fast.package.horizon-client.codegen-units=64 build --offline --locked -j 1 -p horizon-client --bin horizon-client -p horizon-client-lib --bin horizon-ctl --profile fast
+cargo --config profile.fast.package.horizon-client.incremental=false --config profile.fast.package.horizon-client.opt-level=2 --config profile.fast.package.horizon-client.codegen-units=64 rustc --offline --locked -j 1 -p horizon-client --bin horizon-client --features horizon-client-lib/default --profile fast -- -C linker=E:\Games\Minecraft\RustCore\development\toolchain\rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\bin\rust-lld.exe -C link-arg=/threads:1
 ```
 
 Run from the mixed stage, with CARGO_TARGET_DIR pointing at the build target.
-The local guarded resume script is RustCore/qa/dh-handoff-2026-11-03/resume_build.py.
+The local 0.6.0 receipts are
+`RustCore/qa/completion-2026-11-08-bankfix`. The build driver records the exact
+compiler working-set limit and memory floor; no user applications are closed.
+This is a local build accommodation,
+not a gameplay memory limit. The frozen control executable is pinned separately
+in `reports/native-build.json`; it contains no new generator code.
 The source package also supports the normal upstream fast profile when more
 RAM is available. Frame results describe the actual measured binary, not an
 assumed benefit from a compiler flag.
