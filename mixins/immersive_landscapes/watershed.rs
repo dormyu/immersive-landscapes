@@ -254,6 +254,47 @@ pub struct NativeWater {
     pub ocean: bool,
 }
 
+/// A wet raster column before the final one-voxel shoreline connection pass.
+/// Water levels stay fixed; only a bounded opening in the higher bed is allowed.
+#[derive(Clone, Copy, Debug)]
+pub struct WaterJoinColumn {
+    pub floor: i32,
+    pub water: i32,
+    pub river_core: bool,
+}
+
+pub fn waterfall_join_floor(
+    current: WaterJoinColumn,
+    neighbors: [Option<WaterJoinColumn>; 4],
+    refined: bool,
+) -> i32 {
+    if !refined || current.water <= current.floor {
+        return current.floor;
+    }
+    let mut floor = current.floor;
+    for lower in neighbors.into_iter().flatten() {
+        // Never alter unrelated native water bodies or turn a dry bank into a
+        // second channel. The lower water must already occupy a real interval.
+        if !(current.river_core || lower.river_core)
+            || lower.water <= lower.floor
+            || lower.water >= current.water
+            || lower.water > current.floor
+        {
+            continue;
+        }
+        // A fall at a river mouth can span several blocks. A one-column opening
+        // joins the actual water voxels without raising an ocean/lake or carving
+        // a distant canyon. Reject larger mismatches rather than hiding them.
+        let Some(target) = lower.water.checked_sub(1) else {
+            continue;
+        };
+        if current.floor.saturating_sub(target) <= 12 {
+            floor = floor.min(target);
+        }
+    }
+    floor
+}
+
 /// An unmodified native water level distinguishes a sea column from an inland
 /// lake whose BED happens to lie below sea. Density sign alone cannot do that.
 pub fn reconcile_native_water(mut p: Profile, native: Option<NativeWater>, sea: i32) -> Profile {
@@ -293,6 +334,25 @@ fn voxel_ceil(height: f64, natural: bool) -> i32 {
 impl Profile {
     pub fn voxel_water(self, natural: bool) -> i32 {
         voxel_ceil(self.water, natural)
+    }
+
+    pub fn raster_water_versioned(
+        self,
+        floor: i32,
+        native_water: Option<i32>,
+        natural: bool,
+        refined: bool,
+    ) -> i32 {
+        // The bank envelope blends dry terrain, not a water surface. A local
+        // dip below a different segment's level used to create suspended pools
+        // beside the actual channel. Preserve native water too: below-sea-level
+        // or frozen water need not have been reconciled to lake=true. Saved
+        // recipes retain their published behavior.
+        if natural && refined && !self.channel_core && !self.lake {
+            native_water.unwrap_or(floor)
+        } else {
+            self.voxel_water(natural)
+        }
     }
 
     pub fn raster_floor(self, native_ground: i32, natural: bool) -> i32 {

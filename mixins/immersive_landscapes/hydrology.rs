@@ -192,6 +192,84 @@ impl Atlas {
         )
     }
 
+    pub fn raster_water(&self, profile: Profile, floor: i32, native_water: Option<i32>) -> i32 {
+        profile.raster_water_versioned(
+            floor,
+            native_water,
+            self.world.config.natural,
+            self.world.config.refined_rivers,
+        )
+    }
+
+    /// Final floor shared by actual chunks and both LOD column paths. This is
+    /// deliberately outside profile()'s RefCell borrow: neighboring profiles
+    /// use their unmodified base raster and cannot recurse into this method.
+    pub fn raster_floor_at(&self, p: Profile, native_ground: i32, x: i32, z: i32) -> i32 {
+        use super::immersive_landscapes_watershed::{WaterJoinColumn, waterfall_join_floor};
+        let floor = self.raster_floor(p, native_ground);
+        if !self.world.config.natural || !self.world.config.refined_rivers {
+            return floor;
+        }
+        let native = self.native_land(x, z);
+        if !p.channel_core && !p.lake && native.is_some_and(|s| s.water.is_some()) {
+            return native_ground;
+        }
+        let water = self.raster_water(p, floor, native.and_then(|s| s.water.map(|w| w.0)));
+        if water <= floor {
+            return floor;
+        }
+        let current = WaterJoinColumn {
+            floor,
+            water,
+            river_core: p.channel_core && p.strength >= 0.7,
+        };
+        let neighbors = [(1, 0), (-1, 0), (0, 1), (0, -1)].map(|(dx, dz)| {
+            let (nx, nz) = (x.checked_add(dx)?, z.checked_add(dz)?);
+            let q = self.profile(nx, nz);
+            // Most wet columns are flat. Their cached profile levels reject
+            // the neighbor before an exact native surface query is needed.
+            if let Some(q) = q {
+                if !q.channel_core && !q.lake {
+                    if !current.river_core {
+                        return None;
+                    }
+                    // The envelope itself contributes no water, but an
+                    // unchanged native pond/ice interval may exist underneath.
+                    let native = self.native_land(nx, nz)?;
+                    return Some(WaterJoinColumn {
+                        floor: native.height,
+                        water: native.water?.0,
+                        river_core: false,
+                    });
+                }
+                if q.voxel_water(true) > floor
+                    || !(current.river_core || (q.channel_core && q.strength >= 0.7))
+                {
+                    return None;
+                }
+                let native = self.native_land(nx, nz)?;
+                let base = self.raster_floor(q, native.height);
+                Some(WaterJoinColumn {
+                    floor: base,
+                    water: self.raster_water(q, base, native.water.map(|w| w.0)),
+                    river_core: q.channel_core && q.strength >= 0.7,
+                })
+            } else if current.river_core {
+                // A native receiving water column can lie just outside the
+                // river's footprint; its existing level/bed is authoritative.
+                let native = self.native_land(nx, nz)?;
+                Some(WaterJoinColumn {
+                    floor: native.height,
+                    water: native.water?.0,
+                    river_core: false,
+                })
+            } else {
+                None
+            }
+        });
+        waterfall_join_floor(current, neighbors, true)
+    }
+
     pub fn native_land(&self, x: i32, z: i32) -> Option<SurfaceSample> {
         self.native_surface.get()?.get(x, z).map(|v| v.0)
     }
@@ -566,8 +644,14 @@ struct RasterColumn {
 
 fn raster_column(atlas: &Atlas, p: Profile, paint: Paint, x: i32, z: i32) -> Option<RasterColumn> {
     let (native, _) = atlas.native_surface.get()?.get(x, z)?;
-    let floor = atlas.raster_floor(p, native.height);
-    let water = p.voxel_water(true);
+    if atlas.world.config.refined_rivers && !p.channel_core && !p.lake && native.water.is_some() {
+        // A dry bank envelope is not authority over an existing native pond,
+        // ice or aquifer. Leave all three native paths unchanged, including the
+        // original fluid block state, instead of repainting it as source water.
+        return None;
+    }
+    let floor = atlas.raster_floor_at(p, native.height, x, z);
+    let water = atlas.raster_water(p, floor, native.water.map(|w| w.0));
     let cut = floor < native.height;
     let bed_finish = (cut || !p.lake) && water > floor;
     let top = if bed_finish {
