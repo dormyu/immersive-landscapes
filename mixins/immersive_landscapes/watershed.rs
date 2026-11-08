@@ -174,6 +174,8 @@ pub struct Config {
     pub natural: bool,
     /// Explicit rivers_v5 recipe marker; absent in every v8/v9 saved world.
     pub advanced_rivers: bool,
+    /// Explicit rivers_v6 recipe marker; keep the published v10 shape without it.
+    pub refined_rivers: bool,
     pub meander_amplitude: f64,
     pub meander_scale: f64,
     pub width_scale: f64,
@@ -193,6 +195,7 @@ impl Default for Config {
             basin_cache: 8,
             natural: true,
             advanced_rivers: false,
+            refined_rivers: false,
             meander_amplitude: 14.,
             meander_scale: 96.,
             width_scale: 1.,
@@ -774,8 +777,13 @@ impl Basin {
                 }
                 // Flat estuaries still meander. Fade by travel distance to the
                 // receiving sea, not by elevation above sea level.
+                let slope_limit = if self.config.refined_rivers {
+                    0.30
+                } else {
+                    0.18
+                };
                 let amplitude = self.config.meander_amplitude
-                    * (1. - smooth(slope / 0.18))
+                    * (1. - smooth(slope / slope_limit))
                     * smooth(shore_distance / 48.);
                 let mut shift = [
                     amplitude * noise(self.seed, p, self.config.meander_scale),
@@ -813,6 +821,27 @@ impl Basin {
                     shift[0] += delta[0] * gain;
                     shift[1] += delta[1] * gain;
                 }
+                if self.config.refined_rivers
+                    && let Some(j) = self.parent[i]
+                {
+                    // Move a reach ACROSS its flow. The old two-axis field
+                    // also compressed/extended it along the flow: at the v10
+                    // amplitude (28) the shift could exceed a DEM edge (16),
+                    // producing tight hooks and abrupt changes of water grade.
+                    // Shared vertices still keep every tributary connected.
+                    let down = self.point(j);
+                    let up = upstream[i].map_or([2. * p[0] - down[0], 2. * p[1] - down[1]], |k| {
+                        self.point(k)
+                    });
+                    let direction = [down[0] - up[0], down[1] - up[1]];
+                    let length = direction[0].hypot(direction[1]).max(0.001);
+                    let across = [-direction[1] / length, direction[0] / length];
+                    let limit =
+                        f64::from(self.config.step) * 0.9 + self.config.meander_amplitude * 0.25;
+                    let lateral =
+                        (shift[0] * across[0] + shift[1] * across[1]).clamp(-limit, limit);
+                    shift = [across[0] * lateral, across[1] * lateral];
+                }
                 for scale in [1., 0.5, 0.25] {
                     let candidate = [p[0] + shift[0] * scale, p[1] + shift[1] * scale];
                     if valid(candidate)
@@ -844,7 +873,20 @@ impl Basin {
             let next =
                 self.parent[j].map_or([2. * b[0] - a[0], 2. * b[1] - a[1]], |k| positions[k]);
             let length = (b[0] - a[0]).hypot(b[1] - a[1]);
-            let handle = |p: [f64; 2], v: [f64; 2], sign: f64| {
+            let handle = |p: [f64; 2], mut v: [f64; 2], sign: f64| {
+                if self.config.refined_rivers {
+                    // A relocated neighbour can point a cubic handle back
+                    // upstream at a sharp turn. Keep handles progressing
+                    // along this edge; their cross-stream tangent survives.
+                    let direction = [
+                        (b[0] - a[0]) / length.max(0.001),
+                        (b[1] - a[1]) / length.max(0.001),
+                    ];
+                    let along = v[0] * direction[0] + v[1] * direction[1];
+                    let forward = along.max(v[0].hypot(v[1]) * 0.25);
+                    v[0] += direction[0] * (forward - along);
+                    v[1] += direction[1] * (forward - along);
+                }
                 let scale = length / (3. * v[0].hypot(v[1]).max(0.001));
                 [p[0] + v[0] * scale * sign, p[1] + v[1] * scale * sign]
             };
@@ -1084,7 +1126,9 @@ impl Basin {
         self.bins = vec![Vec::new(); self.bin_side * self.bin_side];
         for (id, s) in self.segments.iter().enumerate() {
             let pad = if self.config.natural {
-                s.half_width * 1.25 * self.config.bank_scale + 14.
+                s.half_width * 1.25 * self.config.bank_scale
+                    + 14.
+                    + if self.config.refined_rivers { 24. } else { 0. }
             } else {
                 s.half_width * 2. + 8.
             };
@@ -1126,15 +1170,26 @@ impl Basin {
             } else {
                 s.half_width
             };
+            let w = s.water[0] * (1. - t) + s.water[1] * t;
             let outer = if self.config.natural {
-                width * self.config.bank_scale + 10.
+                let original = width * self.config.bank_scale + 10.;
+                if self.config.refined_rivers {
+                    // A width-only shoulder squeezed a high native bank into
+                    // the same narrow strip as a flat floodplain. Give high
+                    // banks room to rise, bounded to 24 extra blocks so this
+                    // never becomes a blanket mountain/shore flattening pass.
+                    original
+                        .max(width + (raw - w).max(0.) * 2.)
+                        .min(original + 24.)
+                } else {
+                    original
+                }
             } else {
                 width * 2. + 8.
             };
             if d >= outer {
                 continue;
             }
-            let w = s.water[0] * (1. - t) + s.water[1] * t;
             let strength = 1. - smooth((d - width) / (outer - width));
             let target = if self.config.natural {
                 let bed = if d <= width {
@@ -1963,6 +2018,304 @@ mod tests {
                     && (old.from[0] - parts[0].from[0]).hypot(old.from[1] - parts[0].from[1]) > 1.),
             "sea-level rivers were left on the straight DEM lattice"
         );
+    }
+
+    fn straight_reach(refined: bool) -> Basin {
+        #[derive(Debug)]
+        struct Grade;
+        impl Terrain for Grade {
+            fn land(&self, x: i32, _: i32) -> Land {
+                Land {
+                    height: 63. + f64::from(x) * 0.12,
+                    ocean: x <= 0,
+                }
+            }
+        }
+        let coast = Coast {
+            inland_level: None,
+            key: Key(0, 0),
+            x: 0,
+            z: 0,
+        };
+        let mut b = Basin::compile(
+            coast,
+            Config {
+                natural: false,
+                advanced_rivers: true,
+                refined_rivers: refined,
+                meander_amplitude: 28.,
+                meander_scale: 80.,
+                ..config()
+            },
+            &Grade,
+            &[coast],
+        );
+        b.parent.fill(None);
+        b.discharge.fill(0.);
+        b.segments.clear();
+        let centre = b.side / 2 * b.side + b.side / 2;
+        for n in 1..=11 {
+            let i = centre + n;
+            let j = i - 1;
+            b.parent[i] = Some(j);
+            b.discharge[i] = 256.;
+            b.segments.push(Segment {
+                from: b.point(i),
+                to: b.point(j),
+                water: [b.raw[i], b.raw[j]],
+                cells: 64.,
+                half_width: 3.,
+                depth: 3.,
+                mouth: n == 1,
+            });
+        }
+        b.config.natural = true;
+        b.naturalize(&[coast]);
+        b
+    }
+
+    #[test]
+    fn refined_moderate_grade_meanders_without_compressing_downstream_stations() {
+        let old = straight_reach(false);
+        let new = straight_reach(true);
+        let excursion = |b: &Basin| {
+            b.segments
+                .iter()
+                .map(|s| s.from[1].abs())
+                .fold(0., f64::max)
+        };
+        assert!(excursion(&new) > excursion(&old) * 1.3);
+        assert!(
+            excursion(&new) > 3.,
+            "a gentle valley still needs visible lateral bends"
+        );
+        for (n, parts) in new.segments.as_chunks::<4>().0.iter().enumerate() {
+            assert_eq!(
+                parts[0].from[0],
+                ((n + 1) * 16) as f64,
+                "the meander must not move a straight reach's station up/downstream"
+            );
+            assert_eq!(parts[3].to[0], (n * 16) as f64);
+            for (a, b) in parts.iter().zip(&old.segments[n * 4..n * 4 + 4]) {
+                assert_eq!(
+                    a.water, b.water,
+                    "shape tuning cannot change the longitudinal grade"
+                );
+                assert!(a.water[0] >= a.water[1]);
+            }
+            if n > 0 {
+                assert_eq!(parts[3].to, new.segments[n * 4 - 4].from);
+            }
+        }
+    }
+
+    #[test]
+    fn refined_curves_keep_confluences_and_never_hook_back_along_their_edge() {
+        let coast = Coast {
+            inland_level: None,
+            key: Key(0, 0),
+            x: -4,
+            z: 0,
+        };
+        for seed in 0..8 {
+            let mut b = Basin::compile_cached(
+                coast,
+                Config {
+                    radius: 512,
+                    natural: false,
+                    advanced_rivers: true,
+                    refined_rivers: true,
+                    meander_amplitude: 32.,
+                    meander_scale: 48.,
+                    ..config()
+                },
+                &CoastHill,
+                &[coast],
+                None,
+                seed,
+            );
+            let original = b.segments.clone();
+            assert!(original.len() > 10, "confluence fixture has no channels");
+            b.config.natural = true;
+            b.naturalize(&[coast]);
+            let mut junctions = HashMap::new();
+            for (s, parts) in original.iter().zip(b.segments.as_chunks::<4>().0.iter()) {
+                for (old, new) in [(s.from, parts[0].from), (s.to, parts[3].to)] {
+                    let key = (old[0] as i32, old[1] as i32);
+                    if let Some(previous) = junctions.insert(key, new) {
+                        assert_eq!(previous, new, "separate arms moved their shared confluence");
+                    }
+                }
+                let direction = [
+                    parts[3].to[0] - parts[0].from[0],
+                    parts[3].to[1] - parts[0].from[1],
+                ];
+                for part in parts {
+                    let progress = (part.to[0] - part.from[0]) * direction[0]
+                        + (part.to[1] - part.from[1]) * direction[1];
+                    assert!(
+                        progress >= -1e-8,
+                        "seed {seed}: cubic makes an upstream hook"
+                    );
+                    assert!(part.water[0] >= part.water[1]);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn refined_channels_do_not_add_crossings_in_the_seeded_confluence_fixture() {
+        let coast = Coast {
+            inland_level: None,
+            key: Key(0, 0),
+            x: -4,
+            z: 0,
+        };
+        let crossings = |b: &Basin| {
+            let orient = |a: [f64; 2], b: [f64; 2], c: [f64; 2]| {
+                (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+            };
+            let mut count = 0;
+            for (i, a) in b.segments.iter().enumerate() {
+                for c in &b.segments[i + 1..] {
+                    if orient(a.from, a.to, c.from) * orient(a.from, a.to, c.to) < -1e-8
+                        && orient(c.from, c.to, a.from) * orient(c.from, c.to, a.to) < -1e-8
+                    {
+                        count += 1;
+                    }
+                }
+            }
+            count
+        };
+        for seed in 0..8 {
+            let cfg = Config {
+                radius: 512,
+                advanced_rivers: true,
+                meander_amplitude: 28.,
+                meander_scale: 80.,
+                ..config()
+            };
+            let old = Basin::compile_cached(coast, cfg, &CoastHill, &[coast], None, seed);
+            let new = Basin::compile_cached(
+                coast,
+                Config {
+                    refined_rivers: true,
+                    ..cfg
+                },
+                &CoastHill,
+                &[coast],
+                None,
+                seed,
+            );
+            let a = crossings(&old);
+            let b = crossings(&new);
+            assert!(old.segments.len() > 40 && new.segments.len() > 40);
+            eprintln!(
+                "seed {seed}: crossings {a}->{b}, indexed references {}->{}",
+                old.bins.iter().map(Vec::len).sum::<usize>(),
+                new.bins.iter().map(Vec::len).sum::<usize>()
+            );
+            assert!(
+                b <= a,
+                "seed {seed}: refined channels introduced intersecting branches ({a} -> {b})"
+            );
+        }
+    }
+
+    fn bank_fixture(refined: bool, height: f64, x: f64) -> Basin {
+        let coast = Coast {
+            inland_level: None,
+            key: Key(0, 0),
+            x: 0,
+            z: 0,
+        };
+        let mut b = Basin::compile(
+            coast,
+            Config {
+                natural: false,
+                ..config()
+            },
+            &CoastHill,
+            &[coast],
+        );
+        b.raw.fill(height);
+        b.filled.fill(height);
+        b.ocean.fill(false);
+        b.config.natural = true;
+        b.config.advanced_rivers = true;
+        b.config.refined_rivers = refined;
+        b.segments = vec![Segment {
+            from: [x, -96.],
+            to: [x, 96.],
+            water: [63., 63.],
+            cells: 64.,
+            half_width: 3.,
+            depth: 3.,
+            mouth: false,
+        }];
+        b.index();
+        b
+    }
+
+    #[test]
+    fn refined_high_banks_rise_in_smaller_voxel_steps_and_keep_a_bounded_footprint() {
+        let old = bank_fixture(false, 83., 0.);
+        let new = bank_fixture(true, 83., 0.);
+        let cross_section = |b: &Basin, sign: i32| {
+            (5..=70)
+                .map(|d| {
+                    b.sample(d * sign, 0, 83.).map_or(83, |p| {
+                        assert_eq!(p.voxel_water(true), 63);
+                        p.raster_floor_versioned(83, true, true)
+                    })
+                })
+                .collect::<Vec<_>>()
+        };
+        for sign in [-1, 1] {
+            let old_profile = cross_section(&old, sign);
+            let new_profile = cross_section(&new, sign);
+            let step = |p: &[i32]| p.windows(2).map(|v| (v[1] - v[0]).abs()).max().unwrap();
+            assert!(
+                step(&old_profile) >= 3,
+                "fixture must reproduce an abrupt old bank"
+            );
+            assert!(step(&new_profile) <= 2, "high bank still rises as a wall");
+            assert!(new_profile.iter().all(|y| *y >= 63 && *y <= 83));
+            assert!(
+                new.sample(60 * sign, 0, 500.).is_none(),
+                "bank influence escapes its finite cap"
+            );
+        }
+    }
+
+    #[test]
+    fn refined_bank_index_covers_extended_shoulders_and_flat_floodplains_stay_exact() {
+        let mut b = bank_fixture(true, 87., 96.);
+        let indexed: Vec<_> = (100..=150)
+            .map(|x| b.sample(x, 0, 87.).map(|p| p.raster_floor(87, true)))
+            .collect();
+        assert!(
+            indexed[30].is_some(),
+            "fixture reaches the neighbouring spatial bin"
+        );
+        b.bins.iter_mut().for_each(|bin| *bin = vec![0]);
+        let all_segments: Vec<_> = (100..=150)
+            .map(|x| b.sample(x, 0, 87.).map(|p| p.raster_floor(87, true)))
+            .collect();
+        assert_eq!(
+            indexed, all_segments,
+            "spatial bin boundary clips the wider bank"
+        );
+        let old = bank_fixture(false, 67., 0.);
+        let new = bank_fixture(true, 67., 0.);
+        for x in -64..=64 {
+            let value = |b: &Basin| b.sample(x, 0, 67.).map(|p| (p.bed, p.strength, p.water));
+            assert_eq!(
+                value(&old),
+                value(&new),
+                "a flat floodplain needs no wider cut"
+            );
+        }
     }
 
     #[test]
