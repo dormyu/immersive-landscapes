@@ -1,31 +1,41 @@
 # Immersive Landscapes implementation
 
-## Streaming regression update — 0.5.1
+## Current 0.6.0 source/runtime validation
 
-Stronghold-triggered global biome searches now resolve only relevant local rings,
-with unchanged search RNG and terrain recipes. Five native tests, the matched
-near2 reproduction, near32/DH128 travel with busy exit and full restart, and two
-Rust clients passed. Existing IL worlds can use the fix. Read
-[0.5.1 validation](docs/validation-0.5.1.md) and final release notes for the later
-installation and Prism readback. Runtime0.5.0 evidence below is historical;
-no new FPS result or owner aesthetic acceptance is inferred.
+Working native mod, descriptor11 / vanilla-natural-v7. IL code
+`c43610a2fc73b2d092930ad47c4ba5b60ebe83db`, engine f42ef42,
+DH0.1.0+dormyu.16 source/documentation6d974470, unchanged Zoom725ff7a.
+Frozen runtime `4d7c4fec1e668fff43272a25696cd5ffe5b8846e78038382053e5e7b6c9e6a0c`.
+QA: `../RustCore/qa/completion-2026-11-08-bankfix`.
 
+71 standalone tests/Clippy, exact dry-bank protection and unchanged native water,
+bounded M1/M2 native probes, solo/save/full restart/v10 preservation, two-client
+Rust loopback, pond42 flow and regional captures pass. Delta32→8→32 has ten
+original reviewed PNGs and16 block observations. Its original failed screen
+oracle receipt is retained; exact hash-bound revalidation accepts intentional
+chat overlays without a new native run. The visible diagonal ocean band is
+proven biome water tint, not a geometry or actual/predictive source seam.
 
-## Current code/runtime evidence — IL 0.5.0 / DHdormyu.16 / Zoom2
+Three current matched A/B pairs are reviewed and repository PNG hashes match the
+originals. Read the versioned validation report for the current performance and
+final image-review gate results. Use [next-agent](docs/next-agent.md),
+[validation](docs/validation-0.6.0.md) and
+[completion milestones](docs/completion-milestones.ru.md); do not repeat completed
+porting or silently relabel old bfbaa93/ac2e4919 or 0.5.x evidence.
 
-Working native mod, descriptor 10 / vanilla-natural-v6. Code IL224a831,
-DH623dd71, unchanged official Zoom725ff7a, engine f42ef42.
-Final runtime 3bb2fb54bc677e1ba3fe3bfdf4f0b18b034c55fbb2285111ab8831a81da4efcd.
-56 IL tests/44 DH tests and standalone Clippy, native river/lake/ecotone probes,
-actual representative images and final optimized solo/two-client/world-switch/
-near32-DH128 checks pass. Read docs/validation-0.5.0.md for bounded metrics.
-Initial far fill can be incomplete; some channels/tints remain angular/abrupt.
-Owner aesthetic and heavy-pack acceptance are not recorded. Installation and
-Prism happen after this source document: read final release notes and installed
-native-build.json. Preserve the verified fallback until that transaction passes.
-Future structures use saved recipe identity; do not migrate old saves.
-Preserve near32/DH128 Medium/sim8/maxFps260/VSync off/control off.
-Older supplements below are historical and do not replace current pins.
+Cold/warm native32/DH128 and four further480-block legs completed;38 actual
+PNGs were reviewed. Coarse DH water colours/underwater patches and isolated
+predictive far canopies remain open renderer findings. Do not claim all foliage,
+all render distances or owner aesthetics accepted. Read the final release notes
+and local delivery receipts before repeating completed work.
+
+Package/install/publication pin one documentation commit and unchanged native
+source bundle. Complete runtime evidence before that freeze. Later installation,
+Prism and publication readback belong to final release notes/local provenance;
+source validation is not proof of installed delivery. Preserve saved recipes,
+near32/DH128 Medium/simulation8/maxFps260 (unlimited)/VSync off/control off,
+owner data and the verified rollback. Owner aesthetic/heavy-pack acceptance is
+not inferred from technical checks. Versioned 0.5.x documents remain historical.
 
 - Deliver a playable **Horizon native mod**, not a replacement engine or a CLI-only
   terrain library. The existing Rust library is an internal component of that mod.
@@ -34,8 +44,8 @@ Older supplements below are historical and do not replace current pins.
   survival systems, progression, classes or a DormCore framework to acceptance.
 - Latest direction (2026-11-03): ordinary Minecraft landscapes following natural
   rules. Use the native vanilla generator as the foundation; preserve its scale,
-  climate, decoration and varied biomes. The new vanilla-natural-v1 overlay
-  changes shared ridge/erosion/valley fields, not the entire recipe. Epic remains
+  climate, decoration and varied biomes. Current vanilla-natural-v7 preserves
+  that density foundation and adds versioned hydrology/regional vegetation. Epic remains
   a historical reference and a saved v4-world recipe, not the new-world default.
   Do not return to bare height-only prototypes or fourfold mountain amplification.
 - The previous v4 owner-acceptance claim was WRONG: the positive feedback was
@@ -46,8 +56,8 @@ Older supplements below are historical and do not replace current pins.
   profiles. The mod's creation-screen name remains Immersive Landscapes.
   Future structures must target the eventually approved geography, not assume
   that descriptor4 / epic-compact-v1 has already been approved.
-- The old G0-G7 / up-to-100-hour plan was rejected as over-scoped. Use the replacement
-  G0-G3 plan; prioritize existing engine APIs and selective reuse of reference code.
+- The old G0-G7 / up-to-100-hour plan was rejected as over-scoped. Follow the
+  current M1–M4 completion milestones; prioritize proven APIs and bounded fixes.
 - Start with `docs/next-agent.md`, then `docs/implementation-plan.ru.md`. Resume the
   first incomplete gate; do not repeat completed DH porting or broad research.
 - The owner's acceptance is a world created from the delivered build, impressive
@@ -76,7 +86,7 @@ Older supplements below are historical and do not replace current pins.
 - Work in small, verifiable commits. Update gate status with evidence and the next
   exact action. Do not mark a task complete while an acceptance check fails.
 
-## Latest lab supplement — 2026-11-03, SRC-017
+## Historical lab supplement — 2026-11-03, SRC-017
 
 The owner gave positive feedback about the current v5 world except the transient
 near/far water boundary. This is not complete renderer acceptance. They requested

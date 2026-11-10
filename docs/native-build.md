@@ -2,8 +2,10 @@
 
 The 0.6.0 adapter targets Horizon f42ef42 / Minecraft 26.3 with separate
 DH dormyu.16 and official Zoom 2.0.0. New worlds use descriptor 11 / vanilla-natural-v7.
-Read [validation](validation-0.6.0.md) for exact code pins,
-source match, successful runtime checks and measured performance limits.
+Read [validation](validation-0.6.0.md) for exact code pins, source match,
+verified runtime checks and the scope of performance evidence. Final installation,
+Prism launch and distribution readback are recorded separately in release notes
+and local provenance, after the documentation/source bundle is frozen.
 Run tools/native.py generate, stage, build or package as appropriate. On this
 Windows workspace source RustCore/development/scripts/Enter-RustDev.ps1, use
 stable Rust, E: temp/cache/output and one Cargo job. Source bundles require the
@@ -53,8 +55,28 @@ claim. Native adapter checks are recorded separately in the candidate status.
 
 This development `.hnmod` contains source, not a dynamically loaded game DLL.
 The unpatched Horizon launcher cannot build these worldgen hooks yet. Use the
-documented patched tool / combined build or the tested prebuilt DormLab executable.
+documented patched tool / combined build or an executable verified against the
+matching frozen native-build receipt. Do not infer its installation from source
+validation alone.
 Game resources, accounts and worlds are never part of this source package.
+
+## Current compiled source identity
+
+The tested 0.6.0 code is `c43610a2fc73b2d092930ad47c4ba5b60ebe83db` with unchanged
+DH dormyu.16 and official Zoom2. The frozen executable is
+`4d7c4fec1e668fff43272a25696cd5ffe5b8846e78038382053e5e7b6c9e6a0c`.
+The successful one-job build binds the same before/after stage hash across4,521
+files to the resulting executable. The local `reports/native-build.json` pins
+every compiled mod input; later functional/visual receipts pin that executable.
+A later documentation-only commit may package the same source hashes; it is
+not represented as a different gameplay build.
+
+Current frozen-runtime cold/warm checks passed at actual32/DH128 Medium,
+1080p/simulation8/VSync off. Static:368.4/368.9FPS; walking:345.6/397.5FPS;
+fast480-block streaming:295.1/313.6FPS. Four further480-block legs completed
+with247.5–301.8FPS and no chunk-streaming stop. Worst measured frame12.65ms.
+See [validation](validation-0.6.0.md) for frame-time, load/settle and memory
+measurements and their bounded scope; this is not heavy-pack acceptance.
 
 ## Native generation 0.6.0
 

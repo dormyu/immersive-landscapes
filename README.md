@@ -4,43 +4,64 @@ Familiar Minecraft terrain with connected mountain regions, rivers that follow
 their catchments, and gradual vegetation transitions. A working native mod for
 the **Horizon Rust client and Rust dedicated server**, by **dormyu**.
 
-**0.5.1 — native streaming fix.** Approaching a stronghold could stop new
-chunks and make re-entry or shutdown appear stuck. Ordinary chunk generation now
-calculates only the relevant ring searches, preserving the seed and saved terrain.
-The reproduced failure, near32/DH128 travel and full process restart, and two Rust
-clients pass the targeted checks. See [validation](docs/validation-0.5.1.md) for
-exact scope. This fix works in existing IL worlds; no new world is required.
-Source bundles need the documented native build and contain no game executable
-or assets.
+**0.6.0 — refined rivers and regional vegetation.**
+New worlds use **descriptor 11 / `vanilla-natural-v7`**. River bends, bank grading
+and connected outlets are refined, and compatible snowy, dry, tropical and
+wetland vegetation joins the existing temperate/cool transitions. The current
+optimized client passes solo/save/restart, two-client, native generation and
+bounded river/DH checks. The same-camera vanilla/IL comparison is shown below.
+See [validation](docs/validation-0.6.0.md) for exact runtime evidence and limits;
+final installation, Prism and distribution readback belong to release notes.
 
 ## Generation
 
-The `vanilla-natural-v6` recipe keeps Minecraft's scale, continents, climate,
-height limits and gameplay biome identities. Shared ridge, erosion and valley
-fields shape broader mountain regions and connected lowlands. Caves, ores and
-structure definitions remain native; this release does not redesign structures.
+The recipe keeps Minecraft's scale, continents, climate, height limits and gameplay
+biome identities. Shared ridge, erosion and valley fields shape broader mountain
+regions and connected lowlands. Native caves, ores and structure definitions
+remain in use. Villages are not redesigned by this version.
 
-Native Rust hydrology builds bounded drainage graphs with tributaries, shared
-confluences and graded beds. In addition to coastal rivers, suitable native
-inland lakes can receive a catchment at their actual water level. Large rivers
-on suitable low coastal plains can split into conservative delta distributaries.
-The branches share the trunk's discharge and are rejected where native terrain
-would require cutting through a cliff or narrow rock bank.
+Bounded catchments supply tributaries, shared confluences, suitable inland lake
+receivers and conservative coastal distributaries. Meanders preserve downstream
+progression and shared junctions. Bank grading softens suitable high shores;
+dry margins do not manufacture extra water or cut a high native shore beneath
+the planned waterline. Bounded stepped outlets connect without raising the
+receiving lake. Native cavity bottoms are preserved even when distant surface
+approximations cannot reproduce their full depth.
 
-River reaches receive terrain-constrained smoothing and meanders. Lake crossings
-preserve existing wet bottoms and islands outside the channel core. A low saddle
-on a planned lake channel can be opened when it is at most six blocks above the
-water surface; the new floor is one block below water. Higher obstacles remain.
+Vegetation changes gradually across six compatible climate neighborhoods:
+temperate, boreal, snowy/alpine, dry/warm, tropical and wetland. Native placement,
+soil and climate rules remain active; overlapping donors do not simply stack two
+full vegetation densities. Special pale-garden/mushroom vegetation and aquatic,
+cave and foreign biomes retain their native behavior. Gameplay biome IDs remain
+unchanged. See [generation and saved recipes](docs/vanilla-natural.md).
 
-Vegetation blends across compatible boundaries among ten temperate and cool
-biomes: forest, plains, birch forest, flower forest, dark forest, sunflower plains,
-taiga, meadow, old-growth pine taiga and old-growth spruce taiga. Both native
-vegetation density and neighboring species change through the transition.
-Direct deciduous/conifer borders are supported where native soil and temperature
-permit them. Deserts, jungles, savannas, wetlands, snowy and custom biomes retain
-their native transition behavior. Gameplay biome IDs are unchanged.
+## Same seed, same camera — 0.6.0
 
-## Same seed, same camera
+Separate fresh vanilla and IL worlds, seed `4312740467388825473`, captured with
+the same frozen optimized 0.6.0 client, cameras, noon/clear weather,1600×900,
+configured base FOV90, actual distance16 and DHoff. Random block ticks are disabled.
+All six images are unedited native captures; copied image hashes match the QA
+originals. They show the complete mod rather than isolating vegetation alone.
+
+| Scene | Vanilla | Immersive Landscapes |
+| --- | --- | --- |
+| River valley | ![Vanilla river-valley camera](docs/images/0.6.0-vanilla-river-valley.png) | ![IL0.6.0 curved river valley](docs/images/0.6.0-il-river-valley.png) |
+| Coastal catchment | ![Vanilla sandy headland](docs/images/0.6.0-vanilla-delta.png) | ![IL0.6.0 connected delta channels](docs/images/0.6.0-il-delta.png) |
+| Forest/plains transition | ![Vanilla wooded hillside](docs/images/0.6.0-vanilla-forest-plains.png) | ![IL0.6.0 clearing and tree fringe](docs/images/0.6.0-il-forest-plains.png) |
+
+IL adds a continuous bent watercourse where the vanilla camera has an unbroken
+slope, connected coastal channels around low islands, and an open flowered
+clearing with varied trees beside water. Voxel steps and native material/tint
+boundaries remain visible. See [coordinates, image hashes and observed limits](docs/comparison-0.6.0.md).
+These bounded views are not FPS results or owner aesthetic acceptance.
+
+<details>
+<summary>Historical 0.5.1 comparison</summary>
+
+
+These images belong to 0.5.1 and do not show the new 0.6.0 river or regional
+vegetation changes.
+
 
 These are separate **fresh** vanilla and IL worlds, seed `4312740467388825473`,
 captured with the same optimized 0.5.1 client, camera, noon lighting, 1600×900
@@ -57,62 +78,76 @@ recognizable; this is not a replacement biome pack.
 
 See [capture coordinates and observed differences](docs/comparison-0.5.1.md).
 
+
+</details>
+
 ## Play and update
 
-Use a Horizon build compiled with the matching native mod set, enable Immersive
-Landscapes. To start fresh, create a world with type **Immersive Landscapes**. Choose
-any seed; no prepared map or manual data-pack selection is needed. New worlds
-save descriptor **10** and the exact `vanilla-natural-v6` recipe. Updating an existing
-IL world from 0.5.0 to this streaming fix preserves its saved recipe.
+Use a Horizon build compiled with the matching native mod set and enable
+Immersive Landscapes. Create a new world with type **Immersive Landscapes** and
+any seed. No prepared map or manual data-pack selection is needed. The world
+saves descriptor **11** and its exact `vanilla-natural-v7` recipe.
 
-Saved descriptors 4–9 keep their own recipes; reopening a world does not add the
-new river or vegetation markers. Ordinary vanilla worlds remain vanilla. Older
-v1–v3 experiments require their historical builds. The optimized 0.5.0 client
-passed new-world/save/reopen checks and unchanged legacy v4–v8 fixtures. The v9
-recipe path remains supported by the saved-marker policy; it was not a separate
-fixture in this runtime check.
+Create a new world for the 0.6.0 generation changes. Existing **descriptor10/v6**
+worlds retain their geography and markers; the current client verified an unchanged
+saved descriptor and all 20 recipe files. Saved descriptors4–9 remain supported,
+but were not all retested as new 0.6.0 gameplay fixtures. Ordinary vanilla saves
+remain vanilla; archived v1–v3 experiments need their historical builds. Updating
+the mod does not migrate those worlds. The inherited 0.5.1 streaming fix remains
+in place with its [historical regression evidence](docs/validation-0.5.1.md).
 
 The paired rendering set uses **Distant Horizons dormyu.16**, a separate LGPL
 adaptation, and unchanged official **Horizon Zoom 2.0.0**. Hold **Z** to zoom;
-use **Z + mouse wheel** to adjust magnification. DH16 repairs partial LOD
-preparation and boundary walls. It rebuilds derived LOD caches on first use;
-real world chunks and player edits are preserved.
+use **Z + mouse wheel** to adjust magnification. DH16 repairs previously diagnosed
+partial-preparation/boundary cases and rebuilds its derived LOD cache on first
+use; real world chunks and player edits are preserved. Initial filling and
+refinement still require time.
+
+Source bundles require the [documented native build](docs/native-build.md).
+The `.hnmod` contains source, not a Java mod, dynamically loaded DLL or game
+executable. Actual delivered-runtime verification is recorded in release notes.
 
 ## Performance and limits
 
-The target is **32 actual chunks with 128 DH chunks at Medium quality**, while
-leaving room for a larger modpack. These are separate render distances.
-The following historical measurements are from **0.5.0**, not a new 0.5.1 benchmark.
-On an i5-9400F / RTX 2060 / 16 GiB PC, that optimized runtime at
-1920×1080, actual distance 32, DH128 Medium, simulation 8 and VSync off measured
-**333.4 FPS stationary** (20 s; P99 3.97 ms,
-worst 6.61 ms) and **319.2 FPS in a 130-block,
-30-second movement at walking speed** (P99 6.30 ms,
-worst 97.94 ms). The movement run still contained a roughly 98 ms hitch. This is a cached, offscreen scene with an aerial
-camera and maxFps260 (unlimited), not first-time exploration or heavy-pack proof.
+The working target remains **32 actual chunks with DH128 Medium**, leaving room
+for a larger pack. Native distance and DH distance are different settings.
+The controlled measurement uses 1920×1080, simulation8, VSync off and
+maxFps260 (Horizon's unlimited value), an offscreen spectator camera and random
+block ticks disabled. Fresh generation and a separate-process warm reopen are
+reported independently.
 
-The earlier code-equivalent optimized build measured 114.0 FPS stationary and
-99.3 FPS while flying 480 blocks into new terrain in 30 seconds, capped at 120.
-Its native distance-32 preparation took 539.75 seconds; DH was still preparing.
-The only subsequent source change was the one-byte DH version-label correction,
-verified separately. These earlier numbers retain their original runtime hash;
-they are not relabeled as fresh measurements of the final executable.
-Full distant coverage needs additional initial work and can look incomplete
-while filling. A universal, stutter-free 120 FPS result has **not** been established.
-Lower actual distance, DH distance and DH quality are available for slower PCs.
+On an i5-9400F/RTX2060/16GiB host, the loaded cold/warm scenes measured
+**368.4/368.9FPS static**, **345.6/397.5FPS walking**, and **295.1/313.6FPS
+fast streaming**. The extra1.92km route completed at247.5–301.8FPS. The
+worst measured frame was12.65ms. Native32/DH preparation took136/458s on
+first use and16/43s on reopen; first-use preparation is substantial. Whole-client
+peak working set was2.79GiB, with5.99GiB private memory. Full conditions,
+frame times and limits are in [validation](docs/validation-0.6.0.md).
 
-Drainage and lake discovery are bounded; not every valley becomes a river and
-not every coast produces a delta. Some narrow inland reaches and voxel shores
-remain angular. The coastal comparison also shows steep water/ground steps and
-abrupt surface-material boundaries that still need visual work.
-The vegetation policy does not cover every biome or smooth all
-grass, water and sky tint changes. Distant terrain approximates blocks and
-materials. Long exploration, low-end hardware and heavy-pack headroom are not
-established by a short local test. Owner aesthetic acceptance remains separate.
+Earlier FPS measurements retain their [0.5.0 scope](docs/validation-0.5.0.md).
+Current measurements must retain their exact load/scene conditions. They do not
+establish universal stutter-free120 FPS or future heavy-pack performance. Slower PCs can reduce actual distance, DH distance
+and DH quality.
+
+Drainage/lake discovery is bounded; not every valley becomes a river or every
+coast a delta. Voxel shores, native cliffs and eroded-badlands pillars remain.
+Vegetation transitions do not smooth all tint or sand/terracotta/stone boundaries.
+In the reviewed delta, the remaining diagonal ocean color change was traced to
+warm-ocean/deep-lukewarm-ocean tints at equal water height, not a geometry seam or
+render-distance switch. Water-color interpolation is a possible later improvement,
+not an implemented feature of this release. Coarse DH vegetation can retain a
+distant canopy while dropping its thin trunk; pale underwater patches can also
+remain during distance changes. These renderer limitations are still open.
+Long sessions, all seeds, low-end
+hardware and owner aesthetic acceptance remain separate checks.
+
+
+Final installation/Prism checks, retained-world/settings verification and published
+source-asset hashes are recorded in release notes after the delivery transactions.
 
 [Build instructions](docs/native-build.md) ·
 [Hydrology](docs/hydrology-development.md) ·
-[Validation and exact scope](docs/validation-0.5.1.md) ·
+[Validation and exact scope](docs/validation-0.6.0.md) ·
 [Development handoff](docs/next-agent.md)
 
 Own code is [MIT](LICENSE). Historical Epic Terrain data retains wonderfulaichen's
