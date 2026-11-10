@@ -1,5 +1,16 @@
 # Immersive Landscapes
 
+<!-- CURRENT-DH17-DELIVERY -->
+**Working release: Immersive Landscapes 0.6.0**, paired with
+[Distant Horizons dormyu.17](https://github.com/dormyu/distant-horizons-for-horizon-client/releases/tag/dormyu.17) and official Zoom 2.
+The latest renderer update restores supported distant tree stems and blends
+water colours. Existing worlds keep their saved generation recipes.
+
+Solo, save/restart, two Rust clients and the installed Prism launch are checked.
+Performance tests for this update were omitted at the owner's request; underwater
+LOD detail and lighting still have visible differences. See [validation and
+remaining limits](docs/renderer-dormyu.17.md) and [native build instructions](docs/native-build.md).
+
 Familiar Minecraft terrain with connected mountain regions, rivers that follow
 their catchments, and gradual vegetation transitions. A working native mod for
 the **Horizon Rust client and Rust dedicated server**, by **dormyu**.
@@ -96,18 +107,17 @@ remain vanilla; archived v1–v3 experiments need their historical builds. Updat
 the mod does not migrate those worlds. The inherited 0.5.1 streaming fix remains
 in place with its [historical regression evidence](docs/validation-0.5.1.md).
 
-The paired rendering set uses **Distant Horizons dormyu.16**, a separate LGPL
+The current paired rendering set uses **Distant Horizons dormyu.17**, a separate LGPL
 adaptation, and unchanged official **Horizon Zoom 2.0.0**. Hold **Z** to zoom;
-use **Z + mouse wheel** to adjust magnification. DH16 repairs previously diagnosed
-partial-preparation/boundary cases and rebuilds its derived LOD cache on first
-use; real world chunks and player edits are preserved. Initial filling and
-refinement still require time.
+use **Z + mouse wheel** to adjust magnification. Current renderer proof and
+limits are in [the DH17 delivery report](docs/renderer-dormyu.17.md). Real
+world chunks/edits and saved recipes are preserved; initial refinement takes time.
 
 Source bundles require the [documented native build](docs/native-build.md).
 The `.hnmod` contains source, not a Java mod, dynamically loaded DLL or game
 executable. Actual delivered-runtime verification is recorded in release notes.
 
-## Performance and limits
+## Historical IL0.6.0 / DH16 measurements and limits
 
 The working target remains **32 actual chunks with DH128 Medium**, leaving room
 for a larger pack. Native distance and DH distance are different settings.

@@ -1,6 +1,30 @@
 # Immersive Landscapes implementation
 
-## Current 0.6.0 source/runtime validation
+<!-- CURRENT-DH17-DELIVERY -->
+## Current verified delivery — IL 0.6.0 / DH dormyu.17 / Zoom 2
+
+DormLab's renderer update is installed, checked through the real Prism/bridge,
+and [published in dormyu's fork](https://github.com/dormyu/distant-horizons-for-horizon-client/releases/tag/dormyu.17). IL 0.6.0 Rust and Zoom 2 Rust remain
+unchanged; new IL worlds still use descriptor 11 / vanilla-natural-v7. Existing
+world recipes and blocks are not migrated. This renderer update does not require
+creating a new world; new worlds are required only for a different IL recipe.
+
+DH 17 retains narrow supported trunk footprints, interpolates compatible water
+tints, and optimizes planner/perimeter work. These are bounded renderer changes,
+not a new terrain generator or village redesign. Solo/save/full process restart,
+two clients, native 16 → 8 → 16 / DH 64 handoffs, the original canopy camera and
+installed Prism passed on this runtime. **Performance tests were omitted at the
+owner's request** (`performance_tested=false`). Installed native 32 / DH 128 settings
+remain unchanged. Read [the evidence, scope and remaining limits](docs/renderer-dormyu.17.md) for the
+visual profile; owner aesthetic approval and full-pack performance remain unverified.
+
+Runtime `a6a3fcfad445c5af67bf9a5e439d3512621e1cae296734b80e090c6f7ade6b07`; compiled DH `47888d3dec2edda918c367a5a60d3afc8f9f2fd0`; IL code-equivalent source
+`72ede8a6b2ff6505dd1af74ac6c42199f19f46e0`; published documentation `23b16d7e6f2d53de6284c1cc28460e340b3ad47e`. QA: `E:\Games\Minecraft\RustCore\qa\far-canopy-optimized-2026-11-10`.
+The installed transaction preserved 3058 owner-world files and settings;
+control is off. All managed files remain on E:; one Cargo job and owner apps
+preserved. Prior IL 0.6 / DH 16 source snapshots below retain their original scope.
+
+## Historical 0.6.0 / DH16 source/runtime validation
 
 Working native mod, descriptor11 / vanilla-natural-v7. IL code
 `c43610a2fc73b2d092930ad47c4ba5b60ebe83db`, engine f42ef42,

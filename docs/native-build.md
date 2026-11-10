@@ -1,6 +1,40 @@
 # Native development build
 
-The 0.6.0 adapter targets Horizon f42ef42 / Minecraft 26.3 with separate
+<!-- CURRENT-DH17-DELIVERY -->
+## Current verified delivery — IL 0.6.0 / DH dormyu.17 / Zoom 2
+
+DormLab's renderer update is installed, checked through the real Prism/bridge,
+and [published in dormyu's fork](https://github.com/dormyu/distant-horizons-for-horizon-client/releases/tag/dormyu.17). IL 0.6.0 Rust and Zoom 2 Rust remain
+unchanged; new IL worlds still use descriptor 11 / vanilla-natural-v7. Existing
+world recipes and blocks are not migrated. This renderer update does not require
+creating a new world; new worlds are required only for a different IL recipe.
+
+DH 17 retains narrow supported trunk footprints, interpolates compatible water
+tints, and optimizes planner/perimeter work. These are bounded renderer changes,
+not a new terrain generator or village redesign. Solo/save/full process restart,
+two clients, native 16 → 8 → 16 / DH 64 handoffs, the original canopy camera and
+installed Prism passed on this runtime. **Performance tests were omitted at the
+owner's request** (`performance_tested=false`). Installed native 32 / DH 128 settings
+remain unchanged. Read [the evidence, scope and remaining limits](renderer-dormyu.17.md) for the
+visual profile; owner aesthetic approval and full-pack performance remain unverified.
+
+Runtime `a6a3fcfad445c5af67bf9a5e439d3512621e1cae296734b80e090c6f7ade6b07`; compiled DH `47888d3dec2edda918c367a5a60d3afc8f9f2fd0`; IL code-equivalent source
+`72ede8a6b2ff6505dd1af74ac6c42199f19f46e0`; published documentation `23b16d7e6f2d53de6284c1cc28460e340b3ad47e`. QA: `E:\Games\Minecraft\RustCore\qa\far-canopy-optimized-2026-11-10`.
+The installed transaction preserved 3058 owner-world files and settings;
+control is off. All managed files remain on E:; one Cargo job and owner apps
+preserved. Prior IL 0.6 / DH 16 source snapshots below retain their original scope.
+
+## Select the current renderer source
+
+Use [https://github.com/dormyu/distant-horizons-for-horizon-client](https://github.com/dormyu/distant-horizons-for-horizon-client) at tag `dormyu.17`
+(commit `23b16d7e6f2d53de6284c1cc28460e340b3ad47e`) for the DH checkout.
+In the local workspace the wrapper reads `RustCore/development/distant-horizons`.
+Its `tools/horizon.py package` creates the DH 17 bundle; the combined IL wrapper
+then stages DH, IL and the explicitly supplied Zoom bundle together.
+The patched-tool instructions below still apply to this engine pin. The DH 16
+runtime hashes and performance numbers in the historical section are not DH 17 results.
+
+The retained 0.6.0 / DH16 build snapshot below targets Horizon f42ef42 / Minecraft 26.3 with separate
 DH dormyu.16 and official Zoom 2.0.0. New worlds use descriptor 11 / vanilla-natural-v7.
 Read [validation](validation-0.6.0.md) for exact code pins, source match,
 verified runtime checks and the scope of performance evidence. Final installation,
@@ -60,7 +94,7 @@ matching frozen native-build receipt. Do not infer its installation from source
 validation alone.
 Game resources, accounts and worlds are never part of this source package.
 
-## Current compiled source identity
+## Historical IL0.6.0 / DH16 compiled source identity
 
 The tested 0.6.0 code is `c43610a2fc73b2d092930ad47c4ba5b60ebe83db` with unchanged
 DH dormyu.16 and official Zoom2. The frozen executable is
