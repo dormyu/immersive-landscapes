@@ -1,28 +1,29 @@
 # Immersive Landscapes 0.6.0 handoff
 
-<!-- CURRENT-DH17-DELIVERY -->
-## Current verified delivery — IL 0.6.0 / DH dormyu.17 / Zoom 2
+<!-- CURRENT-DH18-DELIVERY -->
+## Current verified delivery — IL 0.6.0 / DH dormyu.18 / Zoom 2
 
-DormLab's renderer update is installed, checked through the real Prism/bridge,
-and [published in dormyu's fork](https://github.com/dormyu/distant-horizons-for-horizon-client/releases/tag/dormyu.17). IL 0.6.0 Rust and Zoom 2 Rust remain
-unchanged; new IL worlds still use descriptor 11 / vanilla-natural-v7. Existing
-world recipes and blocks are not migrated. This renderer update does not require
-creating a new world; new worlds are required only for a different IL recipe.
+DormLab's underwater renderer repair is installed, checked through actual
+Prism/bridge and [published](https://github.com/dormyu/distant-horizons-for-horizon-client/releases/tag/dormyu.18). IL and Zoom Rust are unchanged;
+new worlds retain descriptor11 / vanilla-natural-v7 and existing recipes remain intact.
+This DH update needs no new world.
 
-DH 17 retains narrow supported trunk footprints, interpolates compatible water
-tints, and optimizes planner/perimeter work. These are bounded renderer changes,
-not a new terrain generator or village redesign. Solo/save/full process restart,
-two clients, native 16 → 8 → 16 / DH 64 handoffs, the original canopy camera and
-installed Prism passed on this runtime. **Performance tests were omitted at the
-owner's request** (`performance_tested=false`). Installed native 32 / DH 128 settings
-remain unchanged. Read [the evidence, scope and remaining limits](renderer-dormyu.17.md) for the
-visual profile; owner aesthetic approval and full-pack performance remain unverified.
+The reproduced pale bare seabed strip is absent in reviewed native16→8→16/DH64,
+full-process reopen and native32→16→32/DH128 images. Native water-light/model
+fixtures, two Rust clients and installed Prism passed. A separate distant
+warm-ocean/deep-lukewarm-ocean colour boundary remains visible: saved biome data
+and DH debug views distinguish it from the repaired native/DH handoff.
+No universal renderer or owner aesthetic acceptance is claimed.
 
-Runtime `a6a3fcfad445c5af67bf9a5e439d3512621e1cae296734b80e090c6f7ade6b07`; compiled DH `47888d3dec2edda918c367a5a60d3afc8f9f2fd0`; IL code-equivalent source
-`72ede8a6b2ff6505dd1af74ac6c42199f19f46e0`; published documentation `23b16d7e6f2d53de6284c1cc28460e340b3ad47e`. QA: `E:\Games\Minecraft\RustCore\qa\far-canopy-optimized-2026-11-10`.
-The installed transaction preserved 3058 owner-world files and settings;
-control is off. All managed files remain on E:; one Cargo job and owner apps
-preserved. Prior IL 0.6 / DH 16 source snapshots below retain their original scope.
+**Performance tests were waived by the owner.** Preserve native32/DH128 Medium,
+sim8, maxFps260 (unlimited), VSync off, nativeLOD0, workers Auto and control off.
+3058 owner-world files and settings were preserved. All managed files stay on E:;
+one Cargo job, no concurrent full builds, Teams and owner applications untouched.
+
+Runtime `33992c7848f91b2a3a730c5e0d267edf57e188d2461ed152aa73129b651a2047`; compiled DH `3a8aa870971a3213f8436fe8e299eb95d30b4c73`;
+published source/docs `d4c1d537611b1b0790d2b81bd2708b1fcd0bdc2a`. [Evidence and limits](renderer-dormyu.18.md).
+QA: `E:\Games\Minecraft\RustCore\qa\underwater-seam-aquatic-2026-11-11`.
+The retained DH17 report and older generator snapshots keep their historical scope.
 
 Do not repeat the completed installation/publication or substitute a previous renderer
 candidate. The following handoff is retained as the original IL0.6/DH16 snapshot.

@@ -1,15 +1,17 @@
 # Immersive Landscapes
 
-<!-- CURRENT-DH17-DELIVERY -->
+<!-- CURRENT-DH18-DELIVERY -->
 **Working release: Immersive Landscapes 0.6.0**, paired with
-[Distant Horizons dormyu.17](https://github.com/dormyu/distant-horizons-for-horizon-client/releases/tag/dormyu.17) and official Zoom 2.
-The latest renderer update restores supported distant tree stems and blends
-water colours. Existing worlds keep their saved generation recipes.
+[Distant Horizons dormyu.18](https://github.com/dormyu/distant-horizons-for-horizon-client/releases/tag/dormyu.18) and official Zoom 2.
+The latest renderer update fixes the reproduced pale underwater strip by retaining
+kelp/seagrass and matching water-depth lighting at the native/DH handoff.
+The terrain recipe is unchanged; existing worlds can use this update.
 
-Solo, save/restart, two Rust clients and the installed Prism launch are checked.
-Performance tests for this update were omitted at the owner's request; underwater
-LOD detail and lighting still have visible differences. See [validation and
-remaining limits](docs/renderer-dormyu.17.md) and [native build instructions](docs/native-build.md).
+Solo/reopen, two Rust clients, native32/DH128 visual checks and installed Prism
+are verified. Performance tests were omitted at the owner's request.
+A separate ocean biome-colour boundary remains visible. See [validation and
+limits](docs/renderer-dormyu.18.md), [before/after images](https://github.com/dormyu/distant-horizons-for-horizon-client/blob/dormyu.18/docs/validation-dormyu.18.md)
+and [native build instructions](docs/native-build.md).
 
 Familiar Minecraft terrain with connected mountain regions, rivers that follow
 their catchments, and gradual vegetation transitions. A working native mod for
